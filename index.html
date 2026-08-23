@@ -248,7 +248,7 @@
                 <select id="negMarkSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
                     <option value="0">कोई नहीं</option>
                     <option value="0.25">-0.25 प्रति गलत</option>
-                    <option value="0.33">-0.33 प्रति गलत</option>
+                    <option value="0.33">-1/3 (0.33) प्रति गलत</option>
                     <option value="1">-1 प्रति गलत</option>
                 </select>
             </div>
@@ -341,7 +341,8 @@
             <div id="readyPanel" class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col justify-center items-center gap-4">
                 <div id="readyInfo" class="hidden text-center space-y-1">
                     <div class="text-sm font-semibold text-slate-100"><span id="readyCount">0</span> प्रश्न आपकी PDF से तैयार हैं</div>
-                    <div class="text-xs text-slate-400">Start Assessment दबाकर परीक्षा शुरू करें</div>
+                    <div class="text-xs text-slate-400">Start Assessment दबाकर परीक्षा शुरू करें — शेष प्रश्न पृष्ठभूमि में जुड़ते रहेंगे</div>
+                    <div id="readyBgStatus" class="text-[11px] text-amber-300 hidden"></div>
                 </div>
                 <div id="uploadActions" class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">
                     <button id="generateMoreBtn" onclick="appendMoreQuestionsFromPDF()" class="hidden w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold px-5 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition">
@@ -853,7 +854,7 @@
 
         // ---------- USER SETTINGS ----------
         const SETTINGS_KEY = 'examPortalSettings';
-        const defaultSettings = { setSize: 10, negMark: 0, perQTime: 0, fontScale: 100, light: false, sound: true };
+        const defaultSettings = { setSize: 10, negMark: 0.33, perQTime: 0, fontScale: 100, light: false, sound: true };
         let settings = Object.assign({}, defaultSettings);
 
         function loadSettings() {
@@ -1350,7 +1351,7 @@
             showLoadingState("Analyzing PDF contents and generating assessment MCQs...");
 
             const prompt = `Act as an expert departmental examiner. Identify the department and subject from the document itself and set questions at official departmental exam standard.
-Analyze the document text thoroughly and construct 18 to 25 multiple choice questions (MCQs).
+FIRST QUICK BATCH: construct EXACTLY 10 multiple choice questions (MCQs) from the document — speed matters here, more questions are generated afterwards in the background.
 
 RANDOM COVERAGE RULE:
 Pick topics randomly from across the ENTIRE document text — do not take questions only from the opening pages.
@@ -1399,7 +1400,7 @@ Output MUST be strictly valid JSON array format without markdown fence:
 Randomisation tag (ignore in output, use it to vary your topic choice): ${Math.random().toString(36).slice(2)}
 
 Document Content (text below; if the document is scanned, its pages are attached as images — read them):
-${buildRandomPDFContext()}`;
+${buildRandomPDFContext(8000)}`;
 
             try {
                 const rawText = await fetchGeminiQuiz(apiKey, prompt, scannedPageImages);
@@ -1428,8 +1429,8 @@ ${buildRandomPDFContext()}`;
                     updateBankCounts();
                     enterFocusMode(masterQuestionBank.length);
                     saveMemory();
-                    scheduleBackgroundTopUp(5000);
-                    showToast(`PDF विश्लेषण पूर्ण! ${masterQuestionBank.length} प्रश्न लोड हो गए।`, "success");
+                    scheduleBackgroundTopUp(1200);
+                    showToast(`${masterQuestionBank.length} प्रश्न तैयार — परीक्षा शुरू कर सकते हैं। बाकी प्रश्न पृष्ठभूमि में बनते रहेंगे।`, "success");
                 } else {
                     throw new Error("Analysis engine ने अमान्य प्रश्न-संरचना लौटाई।");
                 }
@@ -1463,14 +1464,15 @@ ${buildRandomPDFContext()}`;
 
         let coverageBand = 0;   // walks across the document so no section is left out
 
-        function buildRandomPDFContext() {
+        function buildRandomPDFContext(budgetOverride) {
             if (!uploadedPDFsText || uploadedPDFsText.trim().length === 0) {
                 return "(यह दस्तावेज़ scanned है — इसके पन्ने images के रूप में साथ भेजे गए हैं। उन्हें पढ़कर प्रश्न बनाएँ।)";
             }
+            const budget = budgetOverride || PDF_CONTEXT_BUDGET;
             const total = uploadedPDFsText.length;
-            if (total <= PDF_CONTEXT_BUDGET) return uploadedPDFsText;
+            if (total <= budget) return uploadedPDFsText;
 
-            const sliceLen = Math.floor(PDF_CONTEXT_BUDGET / PDF_SLICE_COUNT);
+            const sliceLen = Math.floor(budget / PDF_SLICE_COUNT);
             const starts = [];
 
             // one guaranteed slice from the next uncovered band, then random slices from all bands
@@ -1510,7 +1512,8 @@ ${buildRandomPDFContext()}`;
         // While the user is taking the assessment, quietly build the next questions
         let bgGenerating = false;
         let bgTimer = null;
-        const BG_TARGET_SPARE = 30;   // keep at least this many unasked questions ready
+        // keep going until the document is exhausted — the pool target only paces it
+        const BG_TARGET_SPARE = 40;
 
         function unaskedCount() {
             return masterQuestionBank.length - usedQuestionIndices.size;
@@ -1524,29 +1527,36 @@ ${buildRandomPDFContext()}`;
         async function runBackgroundTopUp() {
             if (bgGenerating || pdfExhausted || !navigator.onLine) return;
             if (!uploadedPDFsText && scannedPageImages.length === 0) return;
-            if (unaskedCount() >= BG_TARGET_SPARE) return;
 
             bgGenerating = true;
-            const badge = document.getElementById('bgStatus');
-            if (badge) {
-                badge.classList.remove('hidden');
-                badge.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> पृष्ठभूमि में नए प्रश्न बन रहे हैं...';
-            }
+            const badges = [document.getElementById('bgStatus'), document.getElementById('readyBgStatus')].filter(Boolean);
+            badges.forEach(b => {
+                b.classList.remove('hidden');
+                b.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> नए प्रश्न बन रहे हैं… (अब तक कुल ${masterQuestionBank.length}, अनपूछे ${unaskedCount()})`;
+            });
+            const badge = badges[0];
             try {
                 const added = await appendMoreQuestionsFromPDF(true);
-                if (badge) {
+                badges.forEach(b => {
                     if (added > 0) {
-                        badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${added} नए प्रश्न तैयार (कुल ${masterQuestionBank.length})`;
-                        setTimeout(() => badge.classList.add('hidden'), 4000);
+                        b.innerHTML = `<i class="fa-solid fa-circle-check"></i> +${added} नए प्रश्न — कुल ${masterQuestionBank.length}, अगले सेट के लिए तैयार ${unaskedCount()}`;
+                        setTimeout(() => b.classList.add('hidden'), 5000);
                     } else {
-                        badge.classList.add('hidden');
+                        b.classList.add('hidden');
                     }
-                }
-                if (added > 0 && unaskedCount() < BG_TARGET_SPARE && !pdfExhausted) {
-                    scheduleBackgroundTopUp(8000);   // keep filling the pool
+                });
+                const info = document.getElementById('readyCount');
+                if (info) info.innerText = masterQuestionBank.length;
+                const pool = document.getElementById('remainingPoolInfo');
+                if (pool) pool.innerText = pdfExhausted
+                    ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedCount()} (इस PDF का पूरा content पढ़ा जा चुका है)`
+                    : `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedCount()} • और प्रश्न बन रहे हैं…`;
+                if (!pdfExhausted) {
+                    // continue until the PDF has nothing new left; slow down once the pool is deep
+                    scheduleBackgroundTopUp(unaskedCount() < BG_TARGET_SPARE ? 6000 : 25000);
                 }
             } catch (e) {
-                if (badge) badge.classList.add('hidden');
+                badges.forEach(b => b.classList.add('hidden'));
             } finally {
                 bgGenerating = false;
             }
@@ -1969,12 +1979,10 @@ ${buildRandomPDFContext()}`;
             const marks = score - wrong * settings.negMark;
 
             const marksLine = document.getElementById('marksLine');
-            if (settings.negMark) {
-                marksLine.classList.remove('hidden');
-                marksLine.innerText = `प्राप्त अंक: ${marks.toFixed(2)} / ${total}  (negative marking -${settings.negMark} प्रति गलत, छोड़े गए: ${skipped})`;
-            } else {
-                marksLine.classList.add('hidden');
-            }
+            marksLine.classList.remove('hidden');
+            marksLine.innerHTML = settings.negMark
+                ? `प्राप्त अंक: <span class="text-lg">${marks.toFixed(2)}</span> / ${total} &nbsp;•&nbsp; सही ${score} × 1 = ${score}, गलत ${wrong} × (-${settings.negMark}) = -${(wrong * settings.negMark).toFixed(2)}, छोड़े गए ${skipped} (0)`
+                : `प्राप्त अंक: <span class="text-lg">${score}</span> / ${total} (negative marking बंद है)`;
 
             // review of this set
             const review = document.getElementById('reviewBlock');
@@ -2022,7 +2030,12 @@ ${buildRandomPDFContext()}`;
             document.getElementById('resAccuracy').innerText = `${accuracy}%`;
 
             const unaskedRemaining = masterQuestionBank.length - usedQuestionIndices.size;
-            document.getElementById('remainingPoolInfo').innerText = `Memory Bank Status: ${unaskedRemaining} Unasked Questions Remaining`;
+            const poolLine = pdfExhausted
+                ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining} (इस PDF का पूरा content पढ़ा जा चुका है)`
+                : (bgGenerating
+                    ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining} • PDF से और प्रश्न बन रहे हैं…`
+                    : `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining}`);
+            document.getElementById('remainingPoolInfo').innerText = poolLine;
             updateBankCounts();
         }
 

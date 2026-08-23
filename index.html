@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Exam Portal">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <title>Smart Exam Portal | PDF Analysis & Assessment System</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1411,6 +1414,8 @@ ${buildRandomPDFContext()}`;
         }
 
         function injectManifest() {
+            // a hosted manifest.json is already linked in <head> — nothing to inject
+            if (document.querySelector('link[rel="manifest"]')) return;
             try {
                 const manifest = {
                     name: "Smart Exam Portal",

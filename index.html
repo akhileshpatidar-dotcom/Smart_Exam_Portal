@@ -99,6 +99,22 @@
             }
         }
 
+        /* ---------- LIGHT THEME ---------- */
+        body.light { background: #f4f5f7 !important; color: #14213d !important; }
+        body.light .bg-slate-900, body.light .bg-slate-800, body.light .bg-slate-800\/80,
+        body.light .bg-slate-800\/60, body.light .bg-slate-900\/60, body.light .bg-slate-900\/70,
+        body.light .bg-slate-900\/80, body.light .bg-slate-800\/50, body.light .bg-slate-900\/40 { background-color: #ffffff !important; }
+        body.light header { background-color: #ffffff !important; }
+        body.light .text-slate-100, body.light .text-slate-200, body.light .text-slate-300 { color: #14213d !important; }
+        body.light .text-slate-400, body.light .text-slate-500 { color: #5b6472 !important; }
+        body.light .border-slate-700, body.light .border-slate-600, body.light .border-slate-800 { border-color: #d7dbe2 !important; }
+        body.light .text-amber-400, body.light .text-amber-300 { color: #b45309 !important; }
+        body.light #offlineBanner { color: #14213d !important; }
+
+        /* answer feedback pulse */
+        @keyframes answerPulse { 0% { transform: scale(1); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .answer-pulse { animation: answerPulse 260ms ease-out; }
+
         /* installed / standalone mode: respect the notch */
         @media (display-mode: standalone) {
             header { padding-top: env(safe-area-inset-top); }
@@ -111,6 +127,9 @@
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-lg">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
             <div class="flex items-center space-x-3">
+                <button id="backBtn" onclick="goBack()" class="hidden w-10 h-10 items-center justify-center rounded-full bg-slate-700/70 hover:bg-slate-600 text-slate-200 border border-slate-600 text-lg" title="वापस">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
                 <div class="p-2.5 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 rounded-xl font-bold shadow-md shadow-amber-500/20">
                     <i class="fa-solid fa-bolt text-xl"></i>
                 </div>
@@ -140,8 +159,8 @@
                     <i class="fa-solid fa-download"></i> Install App
                 </button>
 
-                <button onclick="openApiKeyDialog()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600" title="अपनी API key सेट करें">
-                    <i class="fa-solid fa-key"></i> API Key
+                <button onclick="openSettings()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600" title="Settings">
+                    <i class="fa-solid fa-sliders"></i> Settings
                 </button>
 
                 <button id="resetAppBtn" onclick="openResetModal()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600">
@@ -211,6 +230,76 @@
         </div>
     </div>
 
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 max-w-md w-full space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-slate-100 flex items-center gap-2"><i class="fa-solid fa-sliders text-amber-400"></i> Settings</h3>
+                <button onclick="closeSettings()" class="text-slate-400 hover:text-slate-100"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-300">प्रश्नों की संख्या (per set)</label>
+                <div class="grid grid-cols-4 gap-2" id="setSizeGroup"></div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-300">Negative marking</label>
+                <select id="negMarkSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                    <option value="0">कोई नहीं</option>
+                    <option value="0.25">-0.25 प्रति गलत</option>
+                    <option value="0.33">-0.33 प्रति गलत</option>
+                    <option value="1">-1 प्रति गलत</option>
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-300">प्रति प्रश्न समय-सीमा</label>
+                <select id="perQTimeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                    <option value="0">बंद</option>
+                    <option value="30">30 सेकंड</option>
+                    <option value="45">45 सेकंड</option>
+                    <option value="60">60 सेकंड</option>
+                    <option value="90">90 सेकंड</option>
+                </select>
+            </div>
+
+            <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-300">Text size — <span id="fontScaleLabel">100%</span></label>
+                <input id="fontScaleRange" type="range" min="85" max="140" step="5" class="w-full accent-amber-500">
+            </div>
+
+            <div class="flex items-center justify-between gap-3 pt-1">
+                <span class="text-xs font-semibold text-slate-300">Light theme</span>
+                <button id="themeToggle" onclick="toggleTheme()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-600">Dark</button>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-semibold text-slate-300">Sound &amp; vibration</span>
+                <button id="soundToggle" onclick="toggleSound()" class="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg border border-slate-600">On</button>
+            </div>
+
+            <div class="border-t border-slate-700 pt-3 space-y-2">
+                <label class="text-xs font-semibold text-slate-300">API Key (केवल इस डिवाइस में सेव)</label>
+                <input id="apiKeyInput" type="password" placeholder="अपनी key पेस्ट करें (खाली = built-in)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                <button onclick="saveApiKeyFromInput()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-sm">Key सेव करें</button>
+            </div>
+
+            <div class="border-t border-slate-700 pt-3 grid grid-cols-2 gap-2">
+                <button onclick="exportQuestionBank()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-export"></i> Bank निर्यात</button>
+                <button onclick="document.getElementById('bankImportInput').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-import"></i> Bank आयात</button>
+                <input type="file" id="bankImportInput" accept=".json" class="hidden" onchange="importQuestionBank(event)">
+            </div>
+
+            <button onclick="closeSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">बंद करें</button>
+        </div>
+    </div>
+
+    <!-- OFFLINE BANNER -->
+    <div id="offlineBanner" class="hidden fixed bottom-0 left-0 right-0 z-40 bg-amber-500 text-slate-950 text-xs font-bold text-center py-2">
+        <i class="fa-solid fa-wifi"></i> आप offline हैं — सेव किए गए प्रश्नों से परीक्षा चल सकती है, नए प्रश्न नहीं बनेंगे।
+    </div>
+
     <!-- Main Container -->
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 gap-6">
 
@@ -277,9 +366,12 @@
                         <div id="progressBar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
                     </div>
                 </div>
-                <div class="flex items-center gap-4 text-sm font-medium">
+                <div class="flex items-center gap-3 text-sm font-medium flex-wrap">
+                    <div id="perQTimer" class="hidden font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">30s</div>
                     <div class="text-slate-300"><i class="fa-regular fa-clock text-amber-400 mr-1"></i> Elapsed: <span id="timerText" class="font-mono">00:00</span></div>
                     <div class="text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Score: <span id="scoreText">0</span></div>
+                    <button onclick="toggleBookmark()" id="bookmarkBtn" title="Bookmark (B)" class="text-slate-400 hover:text-amber-300 px-2 py-1 rounded-lg border border-slate-700"><i class="fa-regular fa-star"></i></button>
+                    <button onclick="skipQuestion()" title="Skip (S)" class="text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs">Skip</button>
                 </div>
             </div>
 
@@ -338,9 +430,14 @@
                     </div>
                 </div>
 
+                <div id="marksLine" class="hidden text-sm font-semibold text-amber-300"></div>
+
                 <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 max-w-lg mx-auto text-xs text-slate-300">
                     <span id="remainingPoolInfo">Memory Bank Status: 0 Unasked Questions Remaining</span>
                 </div>
+
+                <div id="reviewBlock" class="max-w-2xl mx-auto text-left space-y-2"></div>
+                <div id="historyBlock" class="max-w-2xl mx-auto text-left"></div>
 
                 <!-- ACTION BUTTONS INCLUDING PDF DOWNLOAD -->
                 <div id="resultActions" class="pt-2 flex flex-wrap justify-center items-center gap-3">
@@ -355,6 +452,9 @@
 
                     <button onclick="appendMoreQuestionsFromPDF()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
+                    </button>
+                    <button id="mistakesBtn" onclick="startMistakesQuiz()" class="hidden bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i> मेरी गलतियाँ दोहराएँ (<span id="mistakeCount">0</span>)
                     </button>
                     <button onclick="resetQuestionHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
                         <i class="fa-solid fa-rotate-right"></i> Reset Memory
@@ -395,6 +495,9 @@
                     <p id="evalSubTitle" class="text-xs opacity-80">Option Verification & Technical Rationale</p>
                 </div>
             </div>
+
+            <!-- Correct / chosen answer, shown first -->
+            <div id="evalAnswerBox" class="space-y-2"></div>
 
             <!-- Brief Explanation Block -->
             <div class="space-y-3 bg-slate-900/70 p-4 rounded-xl border border-slate-700">
@@ -469,6 +572,34 @@
 
         // USER ATTEMPTED QUESTIONS TRACKER (FOR EXPORTING COMPLETE ATTEMPTED PDF)
         let attemptedQuestionsLog = [];
+        let currentSetLog = [];          // review data for the running set
+        let bookmarks = [];              // bookmarked questions (persisted)
+        let mistakeBank = [];            // wrongly answered questions (persisted)
+        let perQInterval = null;
+        let perQLeft = 0;
+        let quizMode = 'normal';         // 'normal' | 'mistakes' | 'bookmarks'
+
+        const HISTORY_KEY = 'examPortalHistory';
+        const MISTAKES_KEY = 'examPortalMistakes';
+        const BOOKMARKS_KEY = 'examPortalBookmarks';
+
+        function isValidQuestion(q) {
+            return !!q && typeof q.question === 'string' && q.question.trim().length > 8
+                && Array.isArray(q.options) && q.options.length === 4
+                && new Set(q.options.map(o => String(o).trim().toLowerCase())).size === 4
+                && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex <= 3;
+        }
+
+        function loadSideStores() {
+            try { mistakeBank = JSON.parse(localStorage.getItem(MISTAKES_KEY) || '[]'); } catch (e) { mistakeBank = []; }
+            try { bookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]'); } catch (e) { bookmarks = []; }
+        }
+        function saveSideStores() {
+            try {
+                localStorage.setItem(MISTAKES_KEY, JSON.stringify(mistakeBank.slice(-300)));
+                localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks.slice(-300)));
+            } catch (e) {}
+        }
 
         // Non-blocking Toast Notification Helper
         function showToast(message, type = "info") {
@@ -512,6 +643,7 @@
         // Reset Modal Handlers
         function openResetModal() {
             document.getElementById('resetModal').classList.remove('hidden');
+            pushScreenState('resetModal');
         }
         function closeResetModal() {
             document.getElementById('resetModal').classList.add('hidden');
@@ -661,6 +793,186 @@
         let masterQuestionBank = [...defaultBijleeQuestions];
         let usingDemoBank = true;
 
+        // ---------- BACK NAVIGATION (works like a mobile app) ----------
+        function currentScreen() {
+            if (!document.getElementById('evalModal').classList.contains('hidden')) return 'evalModal';
+            if (!document.getElementById('settingsModal').classList.contains('hidden')) return 'settingsModal';
+            if (!document.getElementById('resetModal').classList.contains('hidden')) return 'resetModal';
+            if (!document.getElementById('installHelpModal').classList.contains('hidden')) return 'installHelpModal';
+            if (!document.getElementById('resultSection').classList.contains('hidden')) return 'result';
+            if (!document.getElementById('quizSection').classList.contains('hidden')) return 'quiz';
+            return 'home';
+        }
+
+        function paintBackButton() {
+            const btn = document.getElementById('backBtn');
+            if (!btn) return;
+            const onHome = currentScreen() === 'home';
+            btn.classList.toggle('hidden', onHome);
+            btn.classList.toggle('flex', !onHome);
+        }
+
+        function goBack() {
+            const screen = currentScreen();
+            if (screen === 'evalModal') { closeEvalModal(); }
+            else if (screen === 'settingsModal') { closeSettings(); }
+            else if (screen === 'resetModal') { closeResetModal(); }
+            else if (screen === 'installHelpModal') { document.getElementById('installHelpModal').classList.add('hidden'); }
+            else if (screen === 'quiz') {
+                clearInterval(perQInterval);
+                clearInterval(timerInterval);
+                document.getElementById('quizSection').classList.add('hidden');
+                switchTab('upload');
+            }
+            else if (screen === 'result') {
+                document.getElementById('resultSection').classList.add('hidden');
+                switchTab('upload');
+            }
+            paintBackButton();
+        }
+
+        // Android / browser hardware back: step back inside the app instead of leaving it
+        function initBackHandling() {
+            history.replaceState({ app: 'home' }, '');
+            window.addEventListener('popstate', () => {
+                if (currentScreen() === 'home') {
+                    // nothing left to go back to inside the app
+                    history.replaceState({ app: 'home' }, '');
+                    return;
+                }
+                goBack();
+                history.pushState({ app: currentScreen() }, '');
+            });
+        }
+
+        function pushScreenState(name) {
+            try { history.pushState({ app: name }, ''); } catch (e) {}
+            paintBackButton();
+        }
+
+        // ---------- USER SETTINGS ----------
+        const SETTINGS_KEY = 'examPortalSettings';
+        const defaultSettings = { setSize: 10, negMark: 0, perQTime: 0, fontScale: 100, light: false, sound: true };
+        let settings = Object.assign({}, defaultSettings);
+
+        function loadSettings() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+                if (saved) settings = Object.assign({}, defaultSettings, saved);
+            } catch (e) {}
+            applySettings();
+        }
+
+        function persistSettings() {
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+        }
+
+        function applySettings() {
+            document.documentElement.style.fontSize = (16 * settings.fontScale / 100) + 'px';
+            document.body.classList.toggle('light', !!settings.light);
+            const t = document.getElementById('themeToggle');
+            if (t) t.innerText = settings.light ? 'Light' : 'Dark';
+            const s = document.getElementById('soundToggle');
+            if (s) s.innerText = settings.sound ? 'On' : 'Off';
+            const fl = document.getElementById('fontScaleLabel');
+            if (fl) fl.innerText = settings.fontScale + '%';
+        }
+
+        function openSettings() {
+            // set size buttons
+            const group = document.getElementById('setSizeGroup');
+            group.innerHTML = '';
+            [5, 10, 20, 50].forEach(n => {
+                const b = document.createElement('button');
+                b.innerText = n;
+                b.className = "py-2 rounded-lg text-sm font-bold border " + (settings.setSize === n
+                    ? "bg-amber-500 text-slate-950 border-amber-500"
+                    : "bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-700");
+                b.onclick = () => { settings.setSize = n; persistSettings(); openSettings(); };
+                group.appendChild(b);
+            });
+            document.getElementById('negMarkSelect').value = String(settings.negMark);
+            document.getElementById('perQTimeSelect').value = String(settings.perQTime);
+            document.getElementById('fontScaleRange').value = settings.fontScale;
+            document.getElementById('apiKeyInput').value = localStorage.getItem('examPortalApiKey') || '';
+            applySettings();
+            document.getElementById('settingsModal').classList.remove('hidden');
+            pushScreenState('settingsModal');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+            paintBackButton();
+        }
+
+        function toggleTheme() { settings.light = !settings.light; persistSettings(); applySettings(); }
+        function toggleSound() { settings.sound = !settings.sound; persistSettings(); applySettings(); }
+
+        function saveApiKeyFromInput() {
+            const v = (document.getElementById('apiKeyInput').value || '').trim();
+            if (v) {
+                localStorage.setItem('examPortalApiKey', v);
+                showToast("आपकी API key इस डिवाइस में सेव हो गई।", "success");
+            } else {
+                localStorage.removeItem('examPortalApiKey');
+                showToast("अब built-in key का उपयोग होगा।", "info");
+            }
+        }
+
+        // ---------- FEEDBACK: SOUND + VIBRATION ----------
+        let audioCtx = null;
+        function beep(correct) {
+            if (!settings.sound) return;
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.frequency.value = correct ? 880 : 220;
+                o.type = 'sine';
+                g.gain.setValueAtTime(0.09, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
+                o.start(); o.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {}
+            if (navigator.vibrate) navigator.vibrate(correct ? 25 : [40, 60, 40]);
+        }
+
+        // ---------- QUESTION BANK EXPORT / IMPORT ----------
+        function exportQuestionBank() {
+            if (masterQuestionBank.length === 0) {
+                showToast("निर्यात के लिए कोई प्रश्न नहीं है।", "warning");
+                return;
+            }
+            const blob = new Blob([JSON.stringify({ version: 1, savedAt: new Date().toISOString(), questions: masterQuestionBank }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `question-bank-${masterQuestionBank.length}.json`;
+            a.click();
+            showToast(`${masterQuestionBank.length} प्रश्न निर्यात हो गए।`, "success");
+        }
+
+        async function importQuestionBank(ev) {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            try {
+                const data = JSON.parse(await file.text());
+                const list = Array.isArray(data) ? data : data.questions;
+                const valid = (list || []).filter(isValidQuestion);
+                if (valid.length === 0) throw new Error('कोई मान्य प्रश्न नहीं मिला');
+                masterQuestionBank = valid;
+                usedQuestionIndices.clear();
+                usingDemoBank = false;
+                updateBankCounts();
+                enterFocusMode(masterQuestionBank.length);
+                saveMemory();
+                showToast(`${valid.length} प्रश्न आयात हो गए।`, "success");
+                closeSettings();
+            } catch (e) {
+                showToast("आयात असफल: " + e.message, "error");
+            }
+            ev.target.value = '';
+        }
+
         // ---------- PERSISTENT MEMORY ----------
         // The full extracted text of every uploaded page is kept, so the user never
         // has to upload the same document again — not even after closing the app.
@@ -781,6 +1093,7 @@
                 tabUploadBtn.className = "px-5 py-3 font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2 transition";
             }
             updateBankCounts();
+            paintBackButton();
         }
 
         // File Selection & Drag-Drop Handling
@@ -854,11 +1167,15 @@
                         document.getElementById(statusId).innerText = "Scanned – reading pages";
                         showLoadingState("Scanned PDF मिली — पन्नों को पढ़ा जा रहा है...");
                         try {
-                            const imgs = await renderPDFPagesToImages(file);
+                            const imgs = await renderPDFPagesToImages(file, 40);
                             scannedPageImages.push(...imgs);
+                            // read the pages once and keep the text, so the file never needs re-uploading
+                            const ocrText = await transcribeScannedPages(imgs, file.name);
+                            if (ocrText) uploadedPDFsText += `\n--- START PDF (scanned): ${file.name} ---\n` + ocrText;
                             document.getElementById(statusId).className = "text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded";
                             document.getElementById(statusId).innerText = `Scanned ✓ (${imgs.length} pages)`;
-                            showToast(`"${file.name}" scanned PDF है — ${imgs.length} पन्ने image रूप में पढ़े गए।`, "success");
+                            saveMemory();
+                            showToast(`"${file.name}" scanned PDF है — ${imgs.length} पन्ने पढ़ लिए गए और memory में सुरक्षित हैं।`, "success");
                         } catch (e2) {
                             document.getElementById(statusId).innerText = "Page render error";
                             showToast(`"${file.name}" के पन्ने पढ़े नहीं जा सके।`, "error");
@@ -905,6 +1222,28 @@
                 images.push(canvas.toDataURL('image/jpeg', 0.72).split(',')[1]);
             }
             return images;
+        }
+
+        // Reads scanned page images in batches and returns their text
+        async function transcribeScannedPages(images, fileName) {
+            let all = '';
+            const BATCH = 5;
+            for (let i = 0; i < images.length; i += BATCH) {
+                const batch = images.slice(i, i + BATCH);
+                document.getElementById('loadingSubStatus').innerText =
+                    `Scanned पन्नों का text निकाला जा रहा है (${Math.min(i + BATCH, images.length)}/${images.length})...`;
+                try {
+                    const txt = await fetchGeminiQuiz(
+                        getApiKey(),
+                        "Transcribe ALL text visible in the attached document page images, exactly as written (Hindi in Devanagari, English in Roman). Keep numbers, clause numbers, tables and units. Output plain text only — no commentary.",
+                        batch
+                    );
+                    all += '\n' + txt;
+                } catch (e) {
+                    console.warn('page batch transcription failed', e);
+                }
+            }
+            return all.trim();
         }
 
         async function readPDFText(file) {
@@ -1046,7 +1385,8 @@ Output MUST be strictly valid JSON array format without markdown fence:
     "question": "Question in natural Devanagari Hindi + English technical mix...",
     "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
     "correctIndex": 0,
-    "explanation": "Detailed explanation with bullet points ('• ') and bold terms ('**term**') explaining why option is correct..."
+    "explanation": "Detailed explanation with bullet points ('• ') and bold terms ('**term**') explaining why option is correct...",
+    "source": "short reference from the document — clause/rule/section number, table name or a 4-8 word quote"
   }
 ]
 
@@ -1066,7 +1406,7 @@ ${buildRandomPDFContext()}`;
                 if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
                     const seen = new Set();
                     masterQuestionBank = parsedQuestions.filter(q => {
-                        if (!q || !q.question || !Array.isArray(q.options)) return false;
+                        if (!isValidQuestion(q)) return false;
                         const key = normalizeQuestion(q.question);
                         if (seen.has(key)) return false;
                         seen.add(key);
@@ -1114,6 +1454,8 @@ ${buildRandomPDFContext()}`;
         const PDF_CONTEXT_BUDGET = 16000;
         const PDF_SLICE_COUNT = 8;
 
+        let coverageBand = 0;   // walks across the document so no section is left out
+
         function buildRandomPDFContext() {
             if (!uploadedPDFsText || uploadedPDFsText.trim().length === 0) {
                 return "(यह दस्तावेज़ scanned है — इसके पन्ने images के रूप में साथ भेजे गए हैं। उन्हें पढ़कर प्रश्न बनाएँ।)";
@@ -1123,7 +1465,14 @@ ${buildRandomPDFContext()}`;
 
             const sliceLen = Math.floor(PDF_CONTEXT_BUDGET / PDF_SLICE_COUNT);
             const starts = [];
-            for (let i = 0; i < PDF_SLICE_COUNT; i++) {
+
+            // one guaranteed slice from the next uncovered band, then random slices from all bands
+            const bandCount = Math.max(1, Math.ceil(total / sliceLen));
+            const bandStartPos = Math.min(total - sliceLen, (coverageBand % bandCount) * sliceLen);
+            starts.push(Math.max(0, bandStartPos));
+            coverageBand++;
+
+            for (let i = 0; i < PDF_SLICE_COUNT - 1; i++) {
                 // one random position inside each equal band of the document => full coverage, random order
                 const bandStart = Math.floor((total / PDF_SLICE_COUNT) * i);
                 const bandEnd = Math.floor((total / PDF_SLICE_COUNT) * (i + 1)) - sliceLen;
@@ -1254,8 +1603,7 @@ ${buildRandomPDFContext()}`;
                     // Keep only genuinely new, well-formed questions
                     const freshOnes = [];
                     parsedQuestions.forEach(q => {
-                        if (!q || !q.question || !Array.isArray(q.options) || q.options.length < 2) return;
-                        if (typeof q.correctIndex !== 'number') return;
+                        if (!isValidQuestion(q)) return;
                         if (isDuplicateQuestion(q.question)) return;
                         if (freshOnes.some(f => normalizeQuestion(f.question) === normalizeQuestion(q.question))) return;
                         freshOnes.push(q);
@@ -1305,7 +1653,37 @@ ${buildRandomPDFContext()}`;
             showToast("Question memory and attempted history reset successfully.", "info");
         }
 
+        function startMistakesQuiz() {
+            if (mistakeBank.length === 0) {
+                showToast("अभी कोई गलत प्रश्न सुरक्षित नहीं है।", "info");
+                return;
+            }
+            quizMode = 'mistakes';
+            currentQuizSet = mistakeBank.slice(-Math.max(settings.setSize, 5));
+            beginSet();
+        }
+
+        function beginSet() {
+            currentQuestionIndex = 0;
+            score = 0;
+            wrongCount = 0;
+            currentSetLog = [];
+            secondsElapsed = 0;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('timerText').innerText = `${mins}:${secs}`;
+            }, 1000);
+            saveMemory();
+            switchTab('quiz');
+            pushScreenState('quiz');
+            loadQuestion();
+        }
+
         function startQuiz() {
+            quizMode = 'normal';
             if (masterQuestionBank.length === 0) {
                 showToast("कोई प्रश्न उपलब्ध नहीं — कृपया पहले PDF अपलोड करें या दोबारा विश्लेषण करें।", "warning");
                 showUploadCard();
@@ -1325,7 +1703,7 @@ ${buildRandomPDFContext()}`;
             }
 
             currentQuizSet = [];
-            const countToPick = Math.min(QUIZ_SET_SIZE, unaskedIndices.length);
+            const countToPick = Math.min(settings.setSize || QUIZ_SET_SIZE, unaskedIndices.length);
 
             // shuffle the unasked pool so every set (and the first question) is random
             for (let i = unaskedIndices.length - 1; i > 0; i--) {
@@ -1339,27 +1717,71 @@ ${buildRandomPDFContext()}`;
                 usedQuestionIndices.add(bankIdx);
             }
 
-            currentQuestionIndex = 0;
-            score = 0;
-            secondsElapsed = 0;
-            clearInterval(timerInterval);
+            beginSet();
+        }
 
-            timerInterval = setInterval(() => {
-                secondsElapsed++;
-                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
-                const secs = String(secondsElapsed % 60).padStart(2, '0');
-                document.getElementById('timerText').innerText = `${mins}:${secs}`;
+        let wrongCount = 0;
+
+        function startPerQuestionTimer() {
+            clearInterval(perQInterval);
+            const box = document.getElementById('perQTimer');
+            if (!settings.perQTime) { box.classList.add('hidden'); return; }
+            perQLeft = settings.perQTime;
+            box.classList.remove('hidden');
+            box.innerText = perQLeft + 's';
+            perQInterval = setInterval(() => {
+                perQLeft--;
+                box.innerText = perQLeft + 's';
+                box.className = perQLeft <= 5
+                    ? "font-mono text-red-300 bg-red-500/10 border border-red-500/40 px-2 py-0.5 rounded"
+                    : "font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded";
+                if (perQLeft <= 0) {
+                    clearInterval(perQInterval);
+                    showToast("समय समाप्त — प्रश्न छोड़ा गया।", "warning");
+                    skipQuestion();
+                }
             }, 1000);
+        }
 
-            saveMemory();
-            switchTab('quiz');
-            loadQuestion();
+        function skipQuestion() {
+            const buttons = document.getElementById('optionsContainer').children;
+            if (buttons.length && buttons[0].disabled) return;   // already answered
+            clearInterval(perQInterval);
+            const qData = currentQuizSet[currentQuestionIndex];
+            currentSetLog.push({ q: qData, selectedIndex: -1, isCorrect: false, skipped: true });
+            attemptedQuestionsLog.push({
+                attemptNum: attemptedQuestionsLog.length + 1,
+                question: qData.question, options: qData.options,
+                correctIndex: qData.correctIndex, selectedIndex: -1,
+                isCorrect: false, skipped: true, explanation: qData.explanation, source: qData.source || ''
+            });
+            nextQuestion();
+        }
+
+        function toggleBookmark() {
+            const qData = currentQuizSet[currentQuestionIndex];
+            if (!qData) return;
+            const idx = bookmarks.findIndex(b => b.question === qData.question);
+            if (idx >= 0) { bookmarks.splice(idx, 1); showToast("Bookmark हटाया।", "info"); }
+            else { bookmarks.push(qData); showToast("प्रश्न bookmark हो गया।", "success"); }
+            saveSideStores();
+            paintBookmarkState();
+        }
+
+        function paintBookmarkState() {
+            const qData = currentQuizSet[currentQuestionIndex];
+            const btn = document.getElementById('bookmarkBtn');
+            if (!btn || !qData) return;
+            const marked = bookmarks.some(b => b.question === qData.question);
+            btn.innerHTML = marked ? '<i class="fa-solid fa-star text-amber-400"></i>' : '<i class="fa-regular fa-star"></i>';
         }
 
         function loadQuestion() {
             const qData = currentQuizSet[currentQuestionIndex];
             document.getElementById('currentQNum').innerText = `Q ${currentQuestionIndex + 1}/${currentQuizSet.length}`;
-            document.getElementById('scoreText').innerText = score;
+            document.getElementById('scoreText').innerText = settings.negMark
+                ? (score - wrongCount * settings.negMark).toFixed(2)
+                : score;
 
             const progressPct = ((currentQuestionIndex) / currentQuizSet.length) * 100;
             document.getElementById('progressBar').style.width = `${progressPct}%`;
@@ -1380,13 +1802,25 @@ ${buildRandomPDFContext()}`;
                 `;
                 container.appendChild(btn);
             });
+
+            paintBookmarkState();
+            startPerQuestionTimer();
         }
 
         function selectOption(selectedIndex) {
             const qData = currentQuizSet[currentQuestionIndex];
             const isCorrect = selectedIndex === qData.correctIndex;
 
-            if (isCorrect) score++;
+            clearInterval(perQInterval);
+            if (isCorrect) score++; else wrongCount++;
+            beep(isCorrect);
+
+            currentSetLog.push({ q: qData, selectedIndex: selectedIndex, isCorrect: isCorrect, skipped: false });
+
+            if (!isCorrect && !mistakeBank.some(m => m.question === qData.question)) {
+                mistakeBank.push(qData);
+                saveSideStores();
+            }
 
             // LOG ATTEMPTED QUESTION FOR COMPLETE PDF EXPORT
             attemptedQuestionsLog.push({
@@ -1396,7 +1830,9 @@ ${buildRandomPDFContext()}`;
                 correctIndex: qData.correctIndex,
                 selectedIndex: selectedIndex,
                 isCorrect: isCorrect,
-                explanation: qData.explanation
+                skipped: false,
+                explanation: qData.explanation,
+                source: qData.source || ''
             });
 
             const buttons = document.getElementById('optionsContainer').children;
@@ -1413,7 +1849,11 @@ ${buildRandomPDFContext()}`;
                 }
             }
 
-            openEvalModal(isCorrect, qData);
+            const card = document.getElementById('questionCard');
+            card.classList.add('answer-pulse');
+            setTimeout(() => card.classList.remove('answer-pulse'), 300);
+
+            openEvalModal(isCorrect, qData, selectedIndex);
             document.getElementById('nextQuestionBtn').classList.remove('hidden');
         }
 
@@ -1442,6 +1882,7 @@ ${buildRandomPDFContext()}`;
 
         function closeEvalModal() {
             document.getElementById('evalModal').classList.add('hidden');
+            paintBackButton();
         }
 
         function nextQuestion() {
@@ -1463,9 +1904,59 @@ ${buildRandomPDFContext()}`;
             const genBtn = document.getElementById('generateMoreBtn');
             if (genBtn) genBtn.classList.remove('hidden');
 
+            clearInterval(perQInterval);
             const total = currentQuizSet.length;
-            const wrong = total - score;
-            const accuracy = Math.round((score / total) * 100);
+            const wrong = wrongCount;
+            const skipped = currentSetLog.filter(r => r.skipped).length;
+            const accuracy = total ? Math.round((score / total) * 100) : 0;
+            const marks = score - wrong * settings.negMark;
+
+            const marksLine = document.getElementById('marksLine');
+            if (settings.negMark) {
+                marksLine.classList.remove('hidden');
+                marksLine.innerText = `प्राप्त अंक: ${marks.toFixed(2)} / ${total}  (negative marking -${settings.negMark} प्रति गलत, छोड़े गए: ${skipped})`;
+            } else {
+                marksLine.classList.add('hidden');
+            }
+
+            // review of this set
+            const review = document.getElementById('reviewBlock');
+            review.innerHTML = '<div class="text-sm font-bold text-slate-200 pt-2">इस सेट की समीक्षा</div>' +
+                currentSetLog.map((r, i) => {
+                    const badge = r.skipped
+                        ? '<span class="text-amber-300">छोड़ा</span>'
+                        : (r.isCorrect ? '<span class="text-green-400">सही</span>' : '<span class="text-red-400">गलत</span>');
+                    const yours = r.selectedIndex >= 0 ? cleanMath(r.q.options[r.selectedIndex]) : '—';
+                    return `<div class="bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-xs space-y-1">
+                        <div class="font-semibold text-slate-200">Q${i + 1}. ${cleanMath(r.q.question)} &nbsp; ${badge}</div>
+                        <div class="text-slate-400">आपका उत्तर: ${yours}</div>
+                        <div class="text-green-300">सही उत्तर: ${cleanMath(r.q.options[r.q.correctIndex])}</div>
+                    </div>`;
+                }).join('');
+
+            // attempt history
+            let hist = [];
+            try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) {}
+            hist.push({ at: new Date().toISOString(), total, correct: score, wrong, skipped, accuracy, marks });
+            try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(-30))); } catch (e) {}
+
+            const hb = document.getElementById('historyBlock');
+            const rows = hist.slice(-6).reverse().map(x => {
+                const d = new Date(x.at);
+                const when = d.toLocaleDateString('en-IN') + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                return `<tr class="border-t border-slate-700"><td class="py-1.5 pr-3 text-slate-400">${when}</td><td class="py-1.5 pr-3">${x.correct}/${x.total}</td><td class="py-1.5 text-amber-300">${x.accuracy}%</td></tr>`;
+            }).join('');
+            hb.innerHTML = `<div class="text-sm font-bold text-slate-200 pt-4 pb-1">पिछली परीक्षाएँ</div>
+                <table class="w-full text-xs"><tbody>${rows}</tbody></table>`;
+
+            pushScreenState('result');
+            const mb = document.getElementById('mistakesBtn');
+            if (mistakeBank.length > 0) {
+                mb.classList.remove('hidden');
+                document.getElementById('mistakeCount').innerText = mistakeBank.length;
+            } else {
+                mb.classList.add('hidden');
+            }
 
             document.getElementById('resTotalQ').innerText = total;
             document.getElementById('resCorrect').innerText = score;
@@ -1548,6 +2039,7 @@ ${buildRandomPDFContext()}`;
                         <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #cbd5e1; font-size:12.5px; color:#334155;">
                             <div style="font-weight:700; margin-bottom:4px;">Technical Rationale:</div>
                             ${plainExplanation}
+                            ${item.source ? `<div style="margin-top:6px; font-size:11.5px; color:#64748b;">स्रोत: ${cleanMath(item.source)}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -1640,7 +2132,7 @@ ${buildRandomPDFContext()}`;
             return formattedLines.join('');
         }
 
-        function openEvalModal(isCorrect, qData) {
+        function openEvalModal(isCorrect, qData, selectedIndex) {
             const modal = document.getElementById('evalModal');
             const header = document.getElementById('evalStatusHeader');
             const iconCont = document.getElementById('evalIconContainer');
@@ -1659,7 +2151,26 @@ ${buildRandomPDFContext()}`;
                 title.innerText = "Incorrect Answer!";
             }
 
-            expText.innerHTML = formatExplanation(qData.explanation);
+            // the answers, right at the top — correct one always, plus the user's wrong pick
+            const answerBox = document.getElementById('evalAnswerBox');
+            const correctOpt = cleanMath(qData.options[qData.correctIndex]);
+            let rows = `<div class="flex items-start gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <i class="fa-solid fa-circle-check text-green-400 mt-0.5"></i>
+                    <div><div class="text-[10px] uppercase tracking-wider text-green-400 font-bold">सही उत्तर</div>
+                    <div class="text-sm text-green-200 font-semibold">${correctOpt}</div></div>
+                </div>`;
+            if (!isCorrect && typeof selectedIndex === 'number' && selectedIndex >= 0) {
+                rows += `<div class="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <i class="fa-solid fa-circle-xmark text-red-400 mt-0.5"></i>
+                    <div><div class="text-[10px] uppercase tracking-wider text-red-400 font-bold">आपका उत्तर</div>
+                    <div class="text-sm text-red-200 font-semibold">${cleanMath(qData.options[selectedIndex])}</div></div>
+                </div>`;
+            }
+            answerBox.innerHTML = rows;
+
+            pushScreenState('evalModal');
+            expText.innerHTML = formatExplanation(qData.explanation) +
+                (qData.source ? `<div class="mt-3 pt-2 border-t border-slate-700 text-xs text-slate-400"><i class="fa-solid fa-book-open mr-1"></i> स्रोत: ${cleanMath(qData.source)}</div>` : '');
             modal.classList.remove('hidden');
         }
 
@@ -1760,8 +2271,65 @@ ${buildRandomPDFContext()}`;
 
         // Initialize on load
         window.onload = function() {
+            loadSettings();
+            loadSideStores();
+            initBackHandling();
+            paintBackButton();
             updateBankCounts();
             restoreMemory();
+
+            document.getElementById('fontScaleRange').addEventListener('input', e => {
+                settings.fontScale = parseInt(e.target.value, 10);
+                persistSettings(); applySettings();
+            });
+            document.getElementById('negMarkSelect').addEventListener('change', e => {
+                settings.negMark = parseFloat(e.target.value); persistSettings();
+            });
+            document.getElementById('perQTimeSelect').addEventListener('change', e => {
+                settings.perQTime = parseInt(e.target.value, 10); persistSettings();
+            });
+
+            // offline awareness
+            const banner = document.getElementById('offlineBanner');
+            const syncOnline = () => banner.classList.toggle('hidden', navigator.onLine);
+            window.addEventListener('online', syncOnline);
+            window.addEventListener('offline', syncOnline);
+            syncOnline();
+
+            // keyboard shortcuts: 1-4 answer, Enter next, B bookmark, S skip, Esc close
+            document.addEventListener('keydown', e => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+                const quizVisible = !document.getElementById('quizSection').classList.contains('hidden');
+                const modalOpen = !document.getElementById('evalModal').classList.contains('hidden');
+
+                if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowLeft')) {
+                    e.preventDefault();
+                    goBack();
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    closeEvalModal(); closeSettings();
+                    document.getElementById('installHelpModal').classList.add('hidden');
+                    return;
+                }
+                if (!quizVisible) return;
+                if (modalOpen) {
+                    if (e.key === 'Enter') { closeEvalModal(); nextQuestion(); }
+                    return;
+                }
+                if (['1', '2', '3', '4'].includes(e.key)) {
+                    const btns = document.getElementById('optionsContainer').children;
+                    const idx = parseInt(e.key, 10) - 1;
+                    if (btns[idx] && !btns[idx].disabled) btns[idx].click();
+                } else if (e.key === 'Enter') {
+                    const nb = document.getElementById('nextQuestionBtn');
+                    if (nb && !nb.classList.contains('hidden')) nb.click();
+                } else if (e.key.toLowerCase() === 'b') {
+                    toggleBookmark();
+                } else if (e.key.toLowerCase() === 's') {
+                    skipQuestion();
+                }
+            });
             injectManifest();
             registerServiceWorker();
 

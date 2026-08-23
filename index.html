@@ -371,6 +371,7 @@
                     <div class="text-slate-300"><i class="fa-regular fa-clock text-amber-400 mr-1"></i> Elapsed: <span id="timerText" class="font-mono">00:00</span></div>
                     <div class="text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Score: <span id="scoreText">0</span></div>
                     <button onclick="toggleBookmark()" id="bookmarkBtn" title="Bookmark (B)" class="text-slate-400 hover:text-amber-300 px-2 py-1 rounded-lg border border-slate-700"><i class="fa-regular fa-star"></i></button>
+                    <span id="bgStatus" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded"></span>
                     <button onclick="skipQuestion()" title="Skip (S)" class="text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs">Skip</button>
                 </div>
             </div>
@@ -1154,7 +1155,12 @@
                 fileListContainer.appendChild(item);
 
                 try {
-                    const text = await readPDFText(file);
+                    let text = await readPDFText(file);
+                    legacyLinesConverted = 0;
+                    text = fixLegacyHindi(text);
+                    if (legacyLinesConverted > 0) {
+                        showToast(`"${file.name}" में Kruti Dev हिंदी मिली — ${legacyLinesConverted} पंक्तियाँ Unicode में बदल दी गईं।`, "info");
+                    }
                     uploadedPDFsText += `\n--- START PDF: ${file.name} ---\n` + text;
                     document.getElementById(statusId).className = "text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded";
                     document.getElementById(statusId).innerText = "Analyzed ✓";
@@ -1254,7 +1260,7 @@
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = textContent.items.map(item => item.str).join(' ');
-                extracted += pageText + ' ';
+                extracted += pageText + '\n';
             }
             if (extracted.replace(/\s+/g, '').length < 80) {
                 const err = new Error('NO_TEXT');
@@ -1422,6 +1428,7 @@ ${buildRandomPDFContext()}`;
                     updateBankCounts();
                     enterFocusMode(masterQuestionBank.length);
                     saveMemory();
+                    scheduleBackgroundTopUp(5000);
                     showToast(`PDF विश्लेषण पूर्ण! ${masterQuestionBank.length} प्रश्न लोड हो गए।`, "success");
                 } else {
                     throw new Error("Analysis engine ने अमान्य प्रश्न-संरचना लौटाई।");
@@ -1500,7 +1507,52 @@ ${buildRandomPDFContext()}`;
             });
         }
 
-        async function appendMoreQuestionsFromPDF() {
+        // While the user is taking the assessment, quietly build the next questions
+        let bgGenerating = false;
+        let bgTimer = null;
+        const BG_TARGET_SPARE = 30;   // keep at least this many unasked questions ready
+
+        function unaskedCount() {
+            return masterQuestionBank.length - usedQuestionIndices.size;
+        }
+
+        function scheduleBackgroundTopUp(delayMs = 4000) {
+            clearTimeout(bgTimer);
+            bgTimer = setTimeout(runBackgroundTopUp, delayMs);
+        }
+
+        async function runBackgroundTopUp() {
+            if (bgGenerating || pdfExhausted || !navigator.onLine) return;
+            if (!uploadedPDFsText && scannedPageImages.length === 0) return;
+            if (unaskedCount() >= BG_TARGET_SPARE) return;
+
+            bgGenerating = true;
+            const badge = document.getElementById('bgStatus');
+            if (badge) {
+                badge.classList.remove('hidden');
+                badge.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> पृष्ठभूमि में नए प्रश्न बन रहे हैं...';
+            }
+            try {
+                const added = await appendMoreQuestionsFromPDF(true);
+                if (badge) {
+                    if (added > 0) {
+                        badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${added} नए प्रश्न तैयार (कुल ${masterQuestionBank.length})`;
+                        setTimeout(() => badge.classList.add('hidden'), 4000);
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
+                if (added > 0 && unaskedCount() < BG_TARGET_SPARE && !pdfExhausted) {
+                    scheduleBackgroundTopUp(8000);   // keep filling the pool
+                }
+            } catch (e) {
+                if (badge) badge.classList.add('hidden');
+            } finally {
+                bgGenerating = false;
+            }
+        }
+
+        async function appendMoreQuestionsFromPDF(silent) {
             const apiKey = getApiKey();
 
             if ((!uploadedPDFsText || uploadedPDFsText.trim().length === 0) && scannedPageImages.length === 0) {
@@ -1509,8 +1561,8 @@ ${buildRandomPDFContext()}`;
             }
 
             if (pdfExhausted) {
-                showToast("इस PDF का पूरा content cover हो चुका है — इससे और नए प्रश्न नहीं बन सकते। नई PDF अपलोड करें।", "warning");
-                return;
+                if (!silent) showToast("इस PDF का पूरा content cover हो चुका है — इससे और नए प्रश्न नहीं बन सकते। नई PDF अपलोड करें।", "warning");
+                return 0;
             }
 
             // Full list of already-asked questions so the AI can avoid every one of them
@@ -1522,11 +1574,11 @@ ${buildRandomPDFContext()}`;
             const MAX_ATTEMPTS = 4;
             let addedTotal = 0;
 
-            showLoadingState("PDF को दोबारा पढ़कर नए unique प्रश्न बनाए जा रहे हैं...");
+            if (!silent) showLoadingState("PDF को दोबारा पढ़कर नए unique प्रश्न बनाए जा रहे हैं...");
 
             try {
                 for (let attempt = 1; attempt <= MAX_ATTEMPTS && addedTotal === 0; attempt++) {
-                    document.getElementById('loadingSubStatus').innerText = `Attempt ${attempt} of ${MAX_ATTEMPTS} — नए प्रश्न खोजे जा रहे हैं...`;
+                    if (!silent) document.getElementById('loadingSubStatus').innerText = `Attempt ${attempt} of ${MAX_ATTEMPTS} — नए प्रश्न खोजे जा रहे हैं...`;
 
                     const prompt = `Act as an expert departmental examiner. Identify the department and subject from the document itself and set questions at official departmental exam standard.
 Analyze the document text thoroughly and construct up to 20 NEW, DISTINCT multiple choice questions (MCQs) STRICTLY from the document content below.
@@ -1615,22 +1667,26 @@ ${buildRandomPDFContext()}`;
                     }
                 }
 
-                hideLoadingState();
+                if (!silent) hideLoadingState();
                 updateBankCounts();
 
                 if (addedTotal > 0) {
                     saveMemory();
-                    showToast(`${addedTotal} नए प्रश्न जोड़े गए! कुल बैंक: ${masterQuestionBank.length}`, "success");
+                    if (!silent) showToast(`${addedTotal} नए प्रश्न जोड़े गए! कुल बैंक: ${masterQuestionBank.length}`, "success");
                 } else {
                     markPDFExhausted();
                     saveMemory();
-                    showToast(`इस PDF से सभी संभावित प्रश्न (${masterQuestionBank.length}) बन चुके हैं — और नए unique प्रश्न नहीं बन सकते। अधिक प्रश्नों के लिए नई/बड़ी PDF अपलोड करें।`, "warning");
+                    if (!silent) showToast(`इस PDF से सभी संभावित प्रश्न (${masterQuestionBank.length}) बन चुके हैं — और नए unique प्रश्न नहीं बन सकते। अधिक प्रश्नों के लिए नई/बड़ी PDF अपलोड करें।`, "warning");
                 }
+                return addedTotal;
             } catch (err) {
                 console.error(err);
-                hideLoadingState();
-                showToast(err.message, "error");
-                if (keyRejected) setTimeout(openApiKeyDialog, 600);
+                if (!silent) {
+                    hideLoadingState();
+                    showToast(err.message, "error");
+                    if (keyRejected) setTimeout(openSettings, 600);
+                }
+                return 0;
             }
         }
 
@@ -1679,6 +1735,7 @@ ${buildRandomPDFContext()}`;
             saveMemory();
             switchTab('quiz');
             pushScreenState('quiz');
+            scheduleBackgroundTopUp(3000);
             loadQuestion();
         }
 
@@ -1950,6 +2007,7 @@ ${buildRandomPDFContext()}`;
                 <table class="w-full text-xs"><tbody>${rows}</tbody></table>`;
 
             pushScreenState('result');
+            scheduleBackgroundTopUp(2000);
             const mb = document.getElementById('mistakesBtn');
             if (mistakeBank.length > 0) {
                 mb.classList.remove('hidden');
@@ -2076,6 +2134,75 @@ ${buildRandomPDFContext()}`;
                 showToast(`PDF generation failed: ${err.message}`, "error");
             });
         }
+
+        // ---------- LEGACY HINDI FONT (Kruti Dev) -> UNICODE ----------
+        // Many departmental PDFs are typed in Kruti Dev; their raw text is gibberish
+        // to any machine, so it is converted to real Devanagari before analysis.
+        const KRUTI_PAIRS = [
+            ["LFk","स्थ"],["{k","क्ष"],["\"k","ष"],["'k","श"],["Hk","भ"],["[k","ख"],["/k","ध"],
+            ["?k","घ"],[">k","झ"],["Fk","था"],["ku","ान"],["ks","ो"],["kS","ौ"],[".k","ण"],
+            ["}","द्ध"],["|","द्य"],["Ø","क्र"],["K","ज्ञ"],["=","त्र"],["«","्र"],["ª","्र"],["ñ","ॉ"],
+            ["U","न्"],["L","स्"],["F","थ"],["R","त्"],["T","ज्"],["X","ग्"],["P","च्"],["Q","फ"],
+            ["W","ौ"],["a","ं"],["¡","ँ"],["A","।"],[",","ए"],["]",","],["¬","ृ"],
+            ["d","क"],["x","ग"],["p","च"],["N","छ"],["t","ज"],["V","ट"],["B","ई"],["M","ड"],
+            ["<","ढ"],["r","त"],["n","द"],["u","न"],["i","प"],["c","ब"],["e","म"],[";","य"],
+            ["j","र"],["y","ल"],["o","व"],["l","स"],["g","ह"],["\\","र"],
+            ["v","अ"],["b","इ"],["m","उ"],["Å","ऊ"],["_","ऋ"],
+            ["k","ा"],["h","ी"],["q","ु"],["w","ू"],["s","े"],["S","ै"],["Z","\u0930\u094d"],
+            ["z","्र"],["*","ठ"],["&","-"],["+","़"],["ü","ड़"],["æ","झ"]
+        ];
+        const KRUTI_SINGLES = new Map(KRUTI_PAIRS.filter(p => p[0].length === 1));
+
+        function krutiToUnicode(str) {
+            let out = '', i = 0;
+            while (i < str.length) {
+                let hit = false;
+                for (let n = 0; n < KRUTI_PAIRS.length; n++) {
+                    const k = KRUTI_PAIRS[n][0];
+                    if (k.length > 1 && str.startsWith(k, i)) { out += KRUTI_PAIRS[n][1]; i += k.length; hit = true; break; }
+                }
+                if (hit) continue;
+                const ch = str[i];
+                out += KRUTI_SINGLES.has(ch) ? KRUTI_SINGLES.get(ch) : ch;
+                i++;
+            }
+            out = out.replace(/f([\u0915-\u0939\u0958-\u095f])/g, '$1ि');
+            out = out.replace(/([\u0915-\u0939\u0958-\u095f])((?:्[\u0915-\u0939])*)([\u093e-\u094c]?)\u0930\u094d/g, 'र्$1$2$3');
+            return out;
+        }
+
+        function devanagariRatio(s) {
+            const letters = s.replace(/[\s\d\p{P}]/gu, '');
+            if (!letters.length) return 0;
+            return (letters.match(/[\u0900-\u097f]/g) || []).length / letters.length;
+        }
+
+        // Real English words look like these; Kruti Dev text almost never does
+        function englishWordRatio(line) {
+            const tokens = line.trim().split(/\s+/).filter(t => t.length > 1);
+            if (!tokens.length) return 1;
+            const eng = tokens.filter(t =>
+                /^[a-z]{4,}$/.test(t) || /^[A-Z][a-z]{3,}$/.test(t) || /^[A-Z]{3,}$/.test(t)
+            ).length;
+            return eng / tokens.length;
+        }
+
+        // Convert only the lines that are actually legacy-font text; English stays untouched.
+        function fixLegacyHindi(text) {
+            let converted = 0;
+            const fixed = text.split(/\n/).map(line => {
+                if (line.trim().length < 12) return line;
+                if (devanagariRatio(line) > 0.15) return line;        // already Unicode Hindi
+                if (englishWordRatio(line) > 0.3) return line;        // genuine English line
+                const c = krutiToUnicode(line);
+                if (devanagariRatio(c) > 0.35) { converted++; return c; }
+                return line;
+            }).join('\n');
+            if (converted > 0) legacyLinesConverted += converted;
+            return fixed;
+        }
+
+        let legacyLinesConverted = 0;
 
         // AI sometimes writes maths as LaTeX; render it as plain readable symbols
         const MATH_WORDS = {

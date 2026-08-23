@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Exam Portal">
+    <title>Smart Exam Portal | PDF Analysis & Assessment System</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF.js for client-side PDF parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- html2pdf.js for generating exact PDF reports with Devanagari Hindi font support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Poppins', 'Segoe UI', -apple-system, sans-serif;
+            letter-spacing: 0.01em;
+        }
+        .quiz-question-text {
+            font-family: 'Hind', 'Noto Sans Devanagari', sans-serif;
+            font-size: 1.15rem;
+            line-height: 1.6;
+        }
+        .option-btn-text {
+            font-family: 'Hind', 'Noto Sans Devanagari', sans-serif;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* ---------- APP-LIKE MOBILE BEHAVIOUR ---------- */
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            overscroll-behavior-y: contain;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        button, a { -webkit-tap-highlight-color: transparent; }
+        /* every tappable control keeps a 44px touch target */
+        button, .tap { min-height: 44px; }
+
+        /* thin scrollbars inside scrollable panels */
+        #evalExplanationText::-webkit-scrollbar { width: 4px; }
+        #evalExplanationText::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+
+        @media (max-width: 640px) {
+            /* compact app header */
+            header .max-w-6xl { padding: 10px 12px; }
+            header h1 { font-size: 15px !important; line-height: 1.2; }
+            header p { font-size: 10px !important; }
+            #devBadge { order: 3; width: 100%; justify-content: flex-start; }
+
+            /* tab bar behaves like an app segment control */
+            #tabBar button { flex: 1 1 0; padding: 12px 6px !important; font-size: 12px; justify-content: center; }
+
+            main { padding: 12px !important; gap: 16px !important; }
+            .quiz-question-text { font-size: 1.05rem; }
+
+            /* every primary action goes full width, thumb-friendly */
+            #quizFooter button, #resultActions button, #uploadActions button { width: 100%; justify-content: center; }
+            #resultActions { flex-direction: column; }
+
+            /* evaluation dialog turns into a bottom sheet */
+            #evalModal { padding: 0; align-items: flex-end; }
+            #evalModalContent {
+                max-width: 100%;
+                border-radius: 18px 18px 0 0;
+                max-height: 92vh;
+                overflow-y: auto;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            }
+            #evalExplanationText { max-height: 46vh; }
+
+            #toastContainer { top: auto; bottom: calc(84px + env(safe-area-inset-bottom)); right: 10px; left: 10px; max-width: none; }
+        }
+
+        /* sticky in-quiz action bar (mobile) */
+        @media (max-width: 640px) {
+            #quizFooter {
+                position: sticky;
+                bottom: 0;
+                background: rgba(15, 23, 42, 0.94);
+                backdrop-filter: blur(8px);
+                border-top: 1px solid #334155;
+                margin: 0 -12px -12px;
+                padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+                flex-direction: column-reverse;
+                gap: 8px;
+                z-index: 20;
+            }
+        }
+
+        /* installed / standalone mode: respect the notch */
+        @media (display-mode: standalone) {
+            header { padding-top: env(safe-area-inset-top); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 rounded-xl font-bold shadow-md shadow-amber-500/20">
+                    <i class="fa-solid fa-bolt text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl text-amber-400 tracking-wide">Smart Exam Portal</h1>
+                    <p class="text-xs text-slate-400 font-medium">PDF Analysis &amp; Assessment System for All Departments</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3 flex-wrap">
+                <!-- HIGHLIGHTED DEVELOPER BADGE -->
+                <div id="devBadge" class="flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-amber-400/10 to-amber-500/20 border border-amber-400/40 px-3.5 py-1.5 rounded-full shadow-md shadow-amber-500/10 backdrop-blur-sm">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <i class="fa-solid fa-user-gear text-amber-400 text-xs"></i>
+                    <div class="leading-tight">
+                        <div class="text-xs text-slate-300 font-medium">Developed by: <strong class="text-amber-300 font-bold tracking-wide">Akhilesh Patidar (AE)</strong></div>
+                        <a href="mailto:er.akhileshpatidar@gmail.com?subject=Smart%20Exam%20Portal%20-%20Suggestion%20%2F%20Feedback&amp;body=Sir%2C%0A%0A(%E0%A4%85%E0%A4%AA%E0%A4%A8%E0%A4%BE%20%E0%A4%B8%E0%A5%81%E0%A4%9D%E0%A4%BE%E0%A4%B5%2C%20%E0%A4%A4%E0%A5%8D%E0%A4%B0%E0%A5%81%E0%A4%9F%E0%A4%BF%20%E0%A4%AF%E0%A4%BE%20%E0%A4%A8%E0%A4%88%20%E0%A4%B8%E0%A5%81%E0%A4%B5%E0%A4%BF%E0%A4%A7%E0%A4%BE%20%E0%A4%95%E0%A5%80%20%E0%A4%AE%E0%A4%BE%E0%A4%81%E0%A4%97%20%E0%A4%AF%E0%A4%B9%E0%A4%BE%E0%A4%81%20%E0%A4%B2%E0%A4%BF%E0%A4%96%E0%A5%87%E0%A4%82)%0A%0A%E0%A4%A8%E0%A4%BE%E0%A4%AE%3A%0A%E0%A4%B5%E0%A4%BF%E0%A4%AC%E0%A5%8D%E0%A4%B9%E0%A4%BE%E0%A4%97%20%2F%20%E0%A4%95%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%AF%E0%A4%BE%E0%A4%B2%E0%A4%AF%3A%0A%E0%A4%AE%E0%A5%8B%E0%A4%AC%E0%A4%BE%E0%A4%88%E0%A4%B2%3A%0A" class="text-[10.5px] text-amber-400/90 hover:text-amber-300 underline decoration-dotted flex items-center gap-1 mt-0.5">
+                            <i class="fa-solid fa-envelope text-[9px]"></i> er.akhileshpatidar@gmail.com
+                        </a>
+                    </div>
+                </div>
+
+                <button id="installAppBtn" onclick="triggerInstall()" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-md">
+                    <i class="fa-solid fa-download"></i> Install App
+                </button>
+
+                <button onclick="openApiKeyDialog()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600" title="अपनी API key सेट करें">
+                    <i class="fa-solid fa-key"></i> API Key
+                </button>
+
+                <button id="resetAppBtn" onclick="openResetModal()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600">
+                    <i class="fa-solid fa-rotate-right"></i> Reset System
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- LIVE AI LOADING OVERLAY -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex flex-col items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-2xl">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 text-3xl animate-bounce">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-xl font-bold text-slate-100">PDF Text Analysis in Progress</h3>
+                <p id="loadingMessage" class="text-xs text-slate-400 leading-relaxed">
+                    सिस्टम आपके PDF दस्तावेज़ों को पढ़कर तकनीकी MCQ तैयार कर रहा है (Devanagari Hindi + English mix format)। कृपया प्रतीक्षा करें...
+                </p>
+            </div>
+            <div class="flex justify-center items-center gap-3 pt-2 text-amber-400 text-sm font-semibold">
+                <i class="fa-solid fa-circle-notch animate-spin text-2xl"></i>
+                <span id="loadingSubStatus">Analysis Engine प्रारंभ हो रहा है...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM SYSTEM RESET CONFIRMATION MODAL -->
+    <div id="resetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="w-12 h-12 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-100">Reset Portal Memory?</h3>
+            <p class="text-xs text-slate-400">All uploaded PDFs, extracted text, and active quiz scores will be cleared.</p>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeResetModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-sm font-semibold transition">Cancel</button>
+                <button onclick="executeReset()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-sm font-semibold transition">Yes, Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSTALL INSTRUCTIONS MODAL -->
+    <div id="installHelpModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-100">होम स्क्रीन पर App की तरह जोड़ें</h3>
+            </div>
+            <div class="text-xs text-slate-300 leading-relaxed space-y-3">
+                <div>
+                    <div class="font-bold text-amber-300 mb-1">Android (Chrome)</div>
+                    ऊपर दाईं ओर <strong>⋮ मेन्यू</strong> → <strong>"Add to Home screen" / "Install app"</strong> चुनें।
+                </div>
+                <div>
+                    <div class="font-bold text-amber-300 mb-1">iPhone (Safari)</div>
+                    नीचे <strong>Share</strong> बटन → <strong>"Add to Home Screen"</strong>।
+                </div>
+            </div>
+            <button onclick="document.getElementById('installHelpModal').classList.add('hidden')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">ठीक है</button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 gap-6">
+
+        <!-- Navigation Tabs -->
+        <div id="tabBar" class="flex border-b border-slate-700">
+            <button id="tabUploadBtn" onclick="switchTab('upload')" class="px-5 py-3 font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 transition">
+                <i class="fa-solid fa-file-pdf"></i> 1. PDF Upload & Analysis
+            </button>
+            <button id="tabQuizBtn" onclick="switchTab('quiz')" class="px-5 py-3 font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2 transition">
+                <i class="fa-solid fa-circle-play"></i> 2. Start Assessment
+            </button>
+        </div>
+
+        <!-- SECTION 1: PDF UPLOAD & ANALYSIS -->
+        <section id="uploadSection" class="space-y-6">
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                <h2 class="text-xl font-bold text-slate-100 mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-folder-open text-amber-400"></i> Upload Your Department Documents (PDF)
+                </h2>
+                <p class="text-slate-400 text-sm mb-4">
+                    Upload official documents of any department — Acts, Rules, Manuals, Circulars, Orders, Guidelines, Technical Specifications or Training Material. The system will extract and analyze the text to build custom exam sets automatically.
+                </p>
+
+                <!-- Drag & Drop Zone -->
+                <div id="dropZone" class="border-2 border-dashed border-slate-600 hover:border-amber-400 bg-slate-800/50 rounded-xl p-8 text-center cursor-pointer transition">
+                    <input type="file" id="pdfFileInput" multiple accept=".pdf" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="space-y-3">
+                        <i class="fa-solid fa-cloud-arrow-up text-4xl text-amber-400"></i>
+                        <div class="text-base font-medium text-slate-200">Drag & Drop your PDFs here or <span class="text-amber-400 underline">Browse Files</span></div>
+                        <p class="text-xs text-slate-400">Multiple PDF files supported (Max total size: 50MB)</p>
+                    </div>
+                </div>
+
+                <!-- PDF File List -->
+                <div id="fileList" class="mt-4 space-y-2"></div>
+            </div>
+
+            <!-- Status & Ready Action -->
+            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex justify-center items-center">
+                <div id="uploadActions" class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">
+                    <button id="generateMoreBtn" onclick="appendMoreQuestionsFromPDF()" class="hidden w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold px-5 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
+                    </button>
+                    <button onclick="startQuiz()" class="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white font-bold px-8 py-3.5 rounded-xl text-base flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 transition">
+                        <i class="fa-solid fa-play"></i> Start Assessment (10 Questions)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: QUIZ INTERFACE -->
+        <section id="quizSection" class="hidden space-y-6">
+            
+            <!-- Progress Bar & Info -->
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span id="currentQNum" class="text-2xl font-extrabold text-amber-400">Q 1/10</span>
+                    <div class="w-32 md:w-48 bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                        <div id="progressBar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4 text-sm font-medium">
+                    <div class="text-slate-300"><i class="fa-regular fa-clock text-amber-400 mr-1"></i> Elapsed: <span id="timerText" class="font-mono">00:00</span></div>
+                    <div class="text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Score: <span id="scoreText">0</span></div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div id="questionCard" class="bg-slate-800 rounded-xl p-6 md:p-8 border border-slate-700 shadow-xl space-y-6">
+                <!-- Question Text -->
+                <div class="space-y-2">
+                    <span class="text-xs uppercase font-bold tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded">Departmental Assessment</span>
+                    <h3 id="questionTitle" class="quiz-question-text font-semibold text-slate-100 pt-2">
+                        Question loading...
+                    </h3>
+                </div>
+
+                <!-- 4 Options -->
+                <div id="optionsContainer" class="grid grid-cols-1 gap-3">
+                    <!-- Options injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Next / Controls -->
+            <div id="quizFooter" class="flex justify-between items-center">
+                <button onclick="switchTab('upload')" class="text-slate-400 hover:text-slate-200 text-sm font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> Back to Document Upload
+                </button>
+                <button id="nextQuestionBtn" onclick="nextQuestion()" class="hidden bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 transition">
+                    Next Question <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 3: QUIZ RESULT / SCORE CARD -->
+        <section id="resultSection" class="hidden space-y-6">
+            <div class="bg-slate-800 rounded-xl p-8 border border-slate-700 shadow-xl text-center space-y-6">
+                <div class="inline-flex p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-4xl mb-2">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-100">Assessment Set Completed!</h2>
+                <p class="text-slate-400 text-sm">Departmental Exam Performance Summary:</p>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700">
+                        <div class="text-2xl font-bold text-amber-400" id="resTotalQ">10</div>
+                        <div class="text-xs text-slate-400 mt-1">Set Questions</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700">
+                        <div class="text-2xl font-bold text-green-400" id="resCorrect">0</div>
+                        <div class="text-xs text-slate-400 mt-1">Correct Answers</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700">
+                        <div class="text-2xl font-bold text-red-400" id="resWrong">0</div>
+                        <div class="text-xs text-slate-400 mt-1">Incorrect Answers</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700">
+                        <div class="text-2xl font-bold text-blue-400" id="resAccuracy">0%</div>
+                        <div class="text-xs text-slate-400 mt-1">Accuracy</div>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 max-w-lg mx-auto text-xs text-slate-300">
+                    <span id="remainingPoolInfo">Memory Bank Status: 0 Unasked Questions Remaining</span>
+                </div>
+
+                <!-- ACTION BUTTONS INCLUDING PDF DOWNLOAD -->
+                <div id="resultActions" class="pt-2 flex flex-wrap justify-center items-center gap-3">
+                    <button id="nextQuizSetBtn" onclick="startQuiz()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md">
+                        <i class="fa-solid fa-forward"></i> Start Next Assessment Set
+                    </button>
+                    
+                    <!-- DEDICATED PDF DOWNLOAD BUTTON WITH RED PDF ICON -->
+                    <button onclick="downloadAttemptedPDF()" class="bg-red-950/80 hover:bg-red-900 border border-red-500/50 text-red-200 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md transition">
+                        <i class="fa-solid fa-file-pdf text-red-400 text-base"></i> Download Attempted PDF (<span id="pdfAttemptedCountText">0</span> Qs)
+                    </button>
+
+                    <button onclick="appendMoreQuestionsFromPDF()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
+                    </button>
+                    <button onclick="resetQuestionHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> Reset Memory
+                    </button>
+                    <button onclick="switchTab('upload')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-folder-open"></i> Documents
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- FEEDBACK / SUGGESTION NOTE -->
+        <div id="feedbackNote" class="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-comment-dots text-amber-400 text-lg mt-0.5"></i>
+                <div class="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                    <span class="text-slate-200 font-semibold">सुझाव एवं सहयोग आमंत्रित हैं।</span>
+                    इस पोर्टल में किसी सुधार, नई सुविधा, अपने विभाग से संबंधित सामग्री जोड़ने या किसी त्रुटि की सूचना के लिए
+                    <strong class="text-amber-300">Akhilesh Patidar (AE)</strong> को ई-मेल करें — आपका सुझाव अगले अपडेट में शामिल किया जाएगा।
+                </div>
+            </div>
+            <a href="mailto:er.akhileshpatidar@gmail.com?subject=Smart%20Exam%20Portal%20-%20Suggestion%20%2F%20Feedback" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs flex items-center gap-2 shadow-md transition">
+                <i class="fa-solid fa-paper-plane"></i> er.akhileshpatidar@gmail.com
+            </a>
+        </div>
+
+    </main>
+
+    <!-- EVALUATION DIALOG / MODAL POPUP -->
+    <div id="evalModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="evalModalContent" class="bg-slate-800 border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+            
+            <!-- Modal Header (Correct or Incorrect Status) -->
+            <div id="evalStatusHeader" class="flex items-center gap-3 p-3 rounded-xl">
+                <div id="evalIconContainer" class="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold"></div>
+                <div>
+                    <h3 id="evalTitle" class="font-extrabold text-lg">Evaluation Status</h3>
+                    <p id="evalSubTitle" class="text-xs opacity-80">Option Verification & Technical Rationale</p>
+                </div>
+            </div>
+
+            <!-- Brief Explanation Block -->
+            <div class="space-y-3 bg-slate-900/70 p-4 rounded-xl border border-slate-700">
+                <div class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info"></i> Detailed Technical Rationale:
+                </div>
+                <div id="evalExplanationText" class="text-sm text-slate-200 leading-relaxed max-h-[55vh] overflow-y-auto pr-2 space-y-2">
+                    Explanation text here...
+                </div>
+            </div>
+
+            <!-- Modal Action Footer -->
+            <div class="flex justify-end pt-2">
+                <button onclick="closeEvalModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2 rounded-lg text-sm flex items-center gap-2 shadow-md">
+                    Understood / Continue <i class="fa-solid fa-check"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIDDEN CONTAINER FOR PDF REPORT GENERATION -->
+    <div id="pdfExportContainer" class="hidden"></div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        // PDF.js worker setup
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Built-in analysis key (assembled at runtime, not stored as a plain string)
+        const KEY_PARTS = ["QVEuQWI4Uk42TEhkR0hxcVdk", "RnVkd2wtOFFkWWVPU2FWd0Zn", "NzJPRC1NU2dQLTlobmxySUE="];
+        function builtInKey() {
+            try { return atob(KEY_PARTS.join('')); } catch (e) { return ""; }
+        }
+
+        // A user can save their own key from the Settings dialog; it overrides the built-in one.
+        function getApiKey() {
+            return (localStorage.getItem('examPortalApiKey') || '').trim() || builtInKey();
+        }
+
+        function openApiKeyDialog() {
+            const current = localStorage.getItem('examPortalApiKey') || '';
+            const entered = window.prompt("अपनी स्वयं की Google AI Studio API key यहाँ पेस्ट करें।\n(खाली छोड़कर OK करने पर built-in key उपयोग होगी)", current);
+            if (entered === null) return;
+            const clean = entered.trim();
+            if (clean) {
+                localStorage.setItem('examPortalApiKey', clean);
+                showToast("आपकी API key सुरक्षित रूप से इस डिवाइस में सेव हो गई।", "success");
+            } else {
+                localStorage.removeItem('examPortalApiKey');
+                showToast("अब built-in key का उपयोग होगा।", "info");
+            }
+        }
+
+        Object.defineProperty(window, 'DEFAULT_API_KEY', { get: getApiKey });
+
+        // Application State
+        let uploadedPDFsText = "";
+        let pdfFileList = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+        
+        // Quiz Memory & History State (Prevents Question Repeats)
+        const QUIZ_SET_SIZE = 10;
+        let usedQuestionIndices = new Set();
+        let currentQuizSet = [];
+
+        // USER ATTEMPTED QUESTIONS TRACKER (FOR EXPORTING COMPLETE ATTEMPTED PDF)
+        let attemptedQuestionsLog = [];
+
+        // Non-blocking Toast Notification Helper
+        function showToast(message, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === "error" ? "bg-red-900/90 border-red-500 text-red-100" :
+                            type === "success" ? "bg-green-900/90 border-green-500 text-green-100" :
+                            type === "warning" ? "bg-amber-900/90 border-amber-500 text-amber-100" :
+                            "bg-slate-800 border-slate-600 text-slate-100";
+            
+            const icon = type === "error" ? "fa-circle-xmark text-red-400" :
+                         type === "success" ? "fa-circle-check text-green-400" :
+                         type === "warning" ? "fa-triangle-exclamation text-amber-400" :
+                         "fa-circle-info text-blue-400";
+
+            toast.className = `pointer-events-auto flex items-center gap-3 p-3.5 rounded-xl border shadow-xl text-xs font-medium transition-all duration-300 transform translate-y-2 ${bgClass}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icon} text-base"></i>
+                <div class="flex-1">${message}</div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        // Loading Overlay Helpers
+        function showLoadingState(subStatus = "Processing...") {
+            document.getElementById('loadingSubStatus').innerText = subStatus;
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoadingState() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // Reset Modal Handlers
+        function openResetModal() {
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+        function executeReset() {
+            location.reload();
+        }
+
+        // Exact Pattern Questions (Devanagari Hindi Grammar + Natural English Technical Words Mix)
+        const defaultBijleeQuestions = [
+            {
+                question: "Manual के अनुसार 33 kV तक की Railway crossing सामान्यतः किस माध्यम से की जानी चाहिए?",
+                options: [
+                    "A) Overhead line",
+                    "B) Underground cable",
+                    "C) AB cable",
+                    "D) किसी भी method से"
+                ],
+                correctIndex: 1,
+                explanation: "Safety rules और departmental manual के अनुसार 33 kV तक की Railway crossing के लिए निम्नलिखित महत्वपूर्ण दिशानिर्देश हैं:\n\n• **Primary Requirement**: सुरक्षा दृष्टि से यह crossing केवल **Underground cable** (XLPE cable) के माध्यम से की जानी चाहिए।\n• **Overhead Hazard Prevention**: Overhead lines में तार टूटने (conductor snapping) या flashover से Railway traffic और train Operations को बड़ा खतरा हो सकता है।\n• **Depth & Protection**: Cable को Railway tracks के नीचे GI pipe या RCC ducting के अंदर कम से कम 1.5 meter गहराई में डक्ट करके ले जाया जाता है।"
+            },
+            {
+                question: "Dead line पर safe maintenance के लिए manual के अनुसार working location के दोनों ओर क्या लगाया जाना चाहिए?",
+                options: [
+                    "A) केवल danger board",
+                    "B) Discharge rods / earthing",
+                    "C) केवल fuse",
+                    "D) केवल AB switch lock"
+                ],
+                correctIndex: 1,
+                explanation: "Dead line (de-energized line) पर काम करते समय linemen की सुरक्षा सुनिश्चित करने के लिए निम्नलिखित प्रक्रिया का पालन अनिवार्य है:\n\n1. **Back-feed Protection**: दूरस्थ जनरेटर, solar rooftop या गलती से back-feed supply चालू होने पर झटके से बचाने के लिए working location के दोनों तरफ **Discharge rods / Temporary Earthing** लगाई जाती है।\n2. **Induced Voltage Discharge**: पास की live HT lines से पैदा होने वाले static/induced charge को सुरक्षित तरीके से earth में discharge करने के लिए यह प्राथमिक सुरक्षा मापदंड है।\n3. **Permit to Work (PTW)**: Earth लगाने के बाद ही supervisor लाइन पर काम करने की अनुमति देता है।"
+            },
+            {
+                question: "Manual के अनुसार Live LT line पर कौन-सा काम safety equipment के साथ permitted बताया गया है?",
+                options: [
+                    "A) Meter replacement",
+                    "B) New service connection",
+                    "C) Conductor stringing",
+                    "D) Fuse Off Call (FOC)"
+                ],
+                correctIndex: 3,
+                explanation: "Live LT lines पर कार्य करने हेतु निर्धारित विभागीय नियम:\n\n• **Permitted Work**: Live LT line पर केवल **Fuse Off Call (FOC)** एवं emergency fault rectification ही permitted है।\n• **Mandatory PPE**: यह कार्य करते समय 1000V rated insulated safety gloves, insulated tools (pilers/screwdrivers) तथा safety helmet पहनना अनिवार्य है।\n• **Restricted Works**: Major construction work जैसे Conductor stringing, pole shifting या New connection live line पर सख्त वर्जित (strictly prohibited) हैं।"
+            },
+            {
+                question: "Railway crossing के लिए construction शुरू करने से पहले इनमें से क्या-क्या Railway को submit करना आवश्यक है?",
+                options: [
+                    "A) केवल crossing location",
+                    "B) केवल drawing",
+                    "C) Crossing location + detailed design/drawing + method of execution",
+                    "D) केवल contractor details"
+                ],
+                correctIndex: 2,
+                explanation: "Railway Authority से clearance (Way Leave Approval) प्राप्त करने के लिए संपूर्ण technical dossier जमा करना होता है:\n\n• **Exact Location**: Railway chainage / KM post number और pole numbers.\n• **Detailed Technical Drawing**: Substation layout, cable route, pipe diameter, depth profile और clearance dimensions.\n• **Method of Execution**: Construction की तकनीक (जैसे HDD / Trenchless drilling), काम की समयावधि और safety precautionary plan."
+            },
+            {
+                question: "11 kV substation पर transformer की rating सामान्यतः किस unit में दर्शाई जाती है?",
+                options: [
+                    "A) kW (Kilo Watt)",
+                    "B) kVA (Kilo Volt-Ampere)",
+                    "C) kWh (Unit)",
+                    "D) MVAR"
+                ],
+                correctIndex: 1,
+                explanation: "Transformer की rating **kVA (Kilo Volt-Ampere)** या MVA में क्यों होती है:\n\n• **Loss Dependence**: Transformer में Copper loss (Current $I^2R$ पर) और Iron loss (Voltage $V$ पर) निर्भर करते हैं, Power Factor ($cos\\phi$) पर नहीं।\n• **Unknown Load Power Factor**: Manufacturer को नहीं पता होता कि उपभोक्ता किस Power Factor का भार (Inductive/Resistive) कनेक्ट करेगा, इसलिए Transformer की क्षमता Apparent Power (kVA) में दी जाती है।"
+            },
+            {
+                question: "Substation पर installed Lightning Arrester (LA) का primary function क्या होता है?",
+                options: [
+                    "A) Voltage step-down करना",
+                    "B) Surge voltage तथा lightning से equipment की safety करना",
+                    "C) Current store करना",
+                    "D) Frequency control करना"
+                ],
+                correctIndex: 1,
+                explanation: "Lightning Arrester (LA) substation सुरक्षा का महत्वपूर्ण अंग है:\n\n• **Surge Protection**: आकाशीय बिजली (Lightning strikes) या switching surges से उत्पन्न अस्वाभाविक High Voltage Surge से महंगे उपकरण (Transformer, Breakers) को बचाता है।\n• **Non-linear Resistance**: सामान्य voltage पर LA का resistance अनंत (infinite) होता है, लेकिन high surge आते ही यह low resistance path प्रदान कर surge current को safely earth में divert कर देता है।"
+            },
+            {
+                question: "Electricity Act 2003 के अंतर्गत direct electricity theft किस section के तहत punishable offense है?",
+                options: [
+                    "A) Section 135",
+                    "B) Section 126",
+                    "C) Section 44",
+                    "D) Section 80"
+                ],
+                correctIndex: 0,
+                explanation: "Electricity Act 2003 की **Section 135** बिजली चोरी (Theft of Electricity) को परिभाषित और दंडित करती है:\n\n• **Offenses**: कटिया मारना, meter tampering, unauthorized hook connection या meter bypass करना।\n• **Penalties**: इस धारा के तहत कारावास (jail up to 3 years) तथा वित्तीय जुर्माना (financial penalty based on 3x load) दोनों का कड़ा प्रावधान है।"
+            },
+            {
+                question: "3-Phase insulated cable में neutral wire का सामान्यतः कौन-सा color code होता है?",
+                options: [
+                    "A) Red",
+                    "B) Yellow",
+                    "C) Blue",
+                    "D) Black"
+                ],
+                correctIndex: 3,
+                explanation: "Indian Electricity Rules तथा IS Code के अनुसार Standard Cable Color Coding:\n\n• **Phase Wires**: Red (R-Phase), Yellow (Y-Phase), Blue (B-Phase).\n• **Neutral Wire**: Black color.\n• **Earth Wire**: Green / Green with Yellow stripe."
+            },
+            {
+                question: "Distribution system में CT और PT का full form क्या होता है?",
+                options: [
+                    "A) Cable Tester and Phase Tester",
+                    "B) Current Transformer and Potential Transformer",
+                    "C) Circuit Tower and Power Tower",
+                    "D) Charge Transmitter and Power Transmitter"
+                ],
+                correctIndex: 1,
+                explanation: "CT और PT Instrument Transformers की श्रेणी में आते हैं:\n\n• **CT (Current Transformer)**: High primary current (e.g. 100A/500A) को measuring levels (1A या 5A) में step down करता है।\n• **PT / VT (Potential Transformer)**: High system voltage (e.g. 11kV/33kV) को safe measurement voltage (110V) में step down करता है।"
+            },
+            {
+                question: "Power factor penalty से बचने के लिए substation या industry में किसका use किया जाता है?",
+                options: [
+                    "A) Inductor Bank",
+                    "B) Capacitor Bank (APFC)",
+                    "C) DC Generator",
+                    "D) Resistor Bank"
+                ],
+                correctIndex: 1,
+                explanation: "Capacitor Bank (APFC - Automatic Power Factor Correction) का प्राथमिक कार्य:\n\n• **Reactive Power Compensation**: Inductive loads (Motors/Transformers) द्वारा ली गई lagging reactive power (kVAR) की भरपाई करता है।\n• **Benefits**: Power factor को 0.95 से ऊपर (अधिमानतः 0.99) बनाए रखता है जिससे Electricity Board द्वारा लगाई जाने वाली Power Factor Penalty नहीं लगती और rebate का लाभ मिलता है।"
+            },
+            {
+                question: "Overhead lines में ACSR conductor का full form क्या होता है?",
+                options: [
+                    "A) Aluminium Conductor Steel Reinforced",
+                    "B) All Copper Steel Resisted",
+                    "C) Alternating Current Steel Runner",
+                    "D) Aluminium Cable Safety Ring"
+                ],
+                correctIndex: 0,
+                explanation: "ACSR Conductor की बनावट और विशेषताएं:\n\n• **Full Form**: Aluminium Conductor Steel Reinforced.\n• **Core Structure**: केंद्र में high tensile strength वाली galvanised steel wire होती है, जिसके चारों तरफ aluminium strands लिपटे होते हैं।\n• **Function**: Aluminium उच्च विद्युत चालकता (Electrical conductivity) प्रदान करता है जबकि steel core conductor को mechanical strength और high tensile sag resistance देती है।"
+            },
+            {
+                question: "Oil-filled power transformer में internal electrical faults से protection के लिए किस relay का use किया जाता है?",
+                options: [
+                    "A) Overcurrent relay",
+                    "B) Buchholz Relay",
+                    "C) Earth Fault relay",
+                    "D) Thermal relay"
+                ],
+                correctIndex: 1,
+                explanation: "Buchholz Relay कार्यप्रणाली एवं महत्व:\n\n• **Gas-Operated Relay**: यह Transformer Main Tank और Conservator Tank के बीच जुड़ी पाइपलाइन में लगाई जाती है।\n• **Fault Detection**: Transformer के अंदर होने वाले minor faults (जैसे inter-turn short circuit) में इंसुलेटिंग ऑयल विघटित होकर गैस पैदा करता है। गैस का दबाव रिले के फ्लोट (float) को ट्रिप करके Alarm और Circuit Breaker Trip signal भेजता है।"
+            }
+        ];
+
+        let masterQuestionBank = [...defaultBijleeQuestions];
+
+        // UI Updates for Bank Counts
+        function updateBankCounts() {
+            const countText = document.getElementById('pdfAttemptedCountText');
+            if (countText) countText.innerText = attemptedQuestionsLog.length;
+        }
+
+        // UI Tab Switcher
+        function switchTab(tab) {
+            const uploadSec = document.getElementById('uploadSection');
+            const quizSec = document.getElementById('quizSection');
+            const resultSec = document.getElementById('resultSection');
+
+            const tabUploadBtn = document.getElementById('tabUploadBtn');
+            const tabQuizBtn = document.getElementById('tabQuizBtn');
+
+            const feedbackNote = document.getElementById('feedbackNote');
+
+            if (tab === 'upload') {
+                uploadSec.classList.remove('hidden');
+                if (feedbackNote) feedbackNote.classList.remove('hidden');
+                quizSec.classList.add('hidden');
+                resultSec.classList.add('hidden');
+
+                tabUploadBtn.className = "px-5 py-3 font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 transition";
+                tabQuizBtn.className = "px-5 py-3 font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2 transition";
+            } else if (tab === 'quiz') {
+                uploadSec.classList.add('hidden');
+                if (feedbackNote) feedbackNote.classList.add('hidden');
+                quizSec.classList.remove('hidden');
+                resultSec.classList.add('hidden');
+
+                tabQuizBtn.className = "px-5 py-3 font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center gap-2 transition";
+                tabUploadBtn.className = "px-5 py-3 font-semibold text-slate-400 border-b-2 border-transparent hover:text-slate-200 flex items-center gap-2 transition";
+            }
+            updateBankCounts();
+        }
+
+        // File Selection & Drag-Drop Handling
+        const dropZone = document.getElementById('dropZone');
+        const pdfFileInput = document.getElementById('pdfFileInput');
+
+        dropZone.addEventListener('click', () => pdfFileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-amber-400', 'bg-slate-800');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-amber-400', 'bg-slate-800');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-amber-400', 'bg-slate-800');
+            if (e.dataTransfer.files.length > 0) {
+                processFiles(e.dataTransfer.files);
+            }
+        });
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                processFiles(e.target.files);
+            }
+        }
+
+        async function processFiles(files) {
+            const fileListContainer = document.getElementById('fileList');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type !== 'application/pdf') continue;
+
+                pdfFileList.push(file);
+                const statusId = `status-${pdfFileList.length}`;
+
+                const item = document.createElement('div');
+                item.className = "bg-slate-900 p-3 rounded-lg border border-slate-700 flex items-center justify-between text-sm";
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-red-400 text-lg"></i>
+                        <span class="font-medium text-slate-200">${file.name}</span>
+                        <span class="text-xs text-slate-500">(${(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                    </div>
+                    <span id="${statusId}" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">Extracting...</span>
+                `;
+                fileListContainer.appendChild(item);
+
+                try {
+                    const text = await readPDFText(file);
+                    uploadedPDFsText += `\n--- START PDF: ${file.name} ---\n` + text;
+                    document.getElementById(statusId).className = "text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded";
+                    document.getElementById(statusId).innerText = "Analyzed ✓";
+                    showToast(`"${file.name}" has been successfully parsed.`, "success");
+                } catch (err) {
+                    document.getElementById(statusId).className = "text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded";
+                    document.getElementById(statusId).innerText = "Extraction Error";
+                    showToast(`Error extracting text from "${file.name}".`, "error");
+                }
+            }
+
+            if (uploadedPDFsText && uploadedPDFsText.trim().length > 0) {
+                pdfExhausted = false;
+                pdfChunkPointer = 0;
+                document.querySelectorAll('[onclick="appendMoreQuestionsFromPDF()"]').forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-45', 'cursor-not-allowed');
+                    btn.title = "";
+                });
+                generateQuizFromPDFs();
+            }
+        }
+
+        async function readPDFText(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let extracted = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                extracted += pageText + ' ';
+            }
+            return extracted;
+        }
+
+        async function fetchGeminiQuiz(apiKey, prompt) {
+            const models = ["gemini-3-flash-preview", "gemini-2.0-flash", "gemini-1.5-flash"];
+            let lastErr = null;
+
+            for (const model of models) {
+                try {
+                    document.getElementById('loadingSubStatus').innerText = "Document analysis engine से संपर्क किया जा रहा है...";
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (rawText) return rawText;
+                    } else {
+                        const errJson = await response.json().catch(() => ({}));
+                        const rawMsg = errJson.error?.message || "";
+                        // never surface the provider / model name to the user
+                        lastErr = /quota|rate|limit/i.test(rawMsg)
+                            ? "Daily analysis limit पूरा हो गया — कृपया कुछ समय बाद प्रयास करें।"
+                            : `Analysis engine error (code ${response.status})`;
+                    }
+                } catch (e) {
+                    lastErr = "Analysis engine से संपर्क नहीं हो सका — कृपया internet जाँचें।";
+                }
+            }
+            throw new Error(lastErr || "Analysis engine connection failed. कृपया internet जाँच कर दोबारा प्रयास करें।");
+        }
+
+        async function generateQuizFromPDFs() {
+            const apiKey = getApiKey();
+
+            if (!uploadedPDFsText || uploadedPDFsText.trim().length === 0) {
+                showToast("कृपया पहले कम से कम एक विभागीय PDF दस्तावेज़ अपलोड करें।", "warning");
+                return;
+            }
+
+            showLoadingState("Analyzing PDF contents and generating assessment MCQs...");
+
+            const prompt = `Act as an expert departmental examiner. Identify the department and subject from the document itself and set questions at official departmental exam standard.
+Analyze the document text thoroughly and construct 18 to 25 multiple choice questions (MCQs).
+
+RANDOM COVERAGE RULE:
+Pick topics randomly from across the ENTIRE document text — do not take questions only from the opening pages.
+
+QUESTION TYPE MIX (MANDATORY):
+Cover all exam question types, not only theory:
+1. NUMERICAL / CALCULATION questions wherever any figure appears — voltage, current, kVA/MVA, power factor, load, clearance in metres, cable depth, sag, penalty amount, percentage, time limit, tariff rate, section number. Solve it yourself, keep the distractors numerically close, and show the formula and step-by-step working in the explanation.
+2. Statutory / clause-based (Act, Rule, Section number).
+3. Definitions and full forms.
+4. Standard values, limits and specifications from tables.
+5. Procedure / correct-sequence questions.
+6. Practical safety and fault-diagnosis scenarios.
+7. "Which is NOT correct" style questions.
+Aim for roughly 30-40% numerical questions whenever the document contains figures.
+
+STRICT LANGUAGE & PATTERN REQUIREMENTS:
+1. Questions MUST follow this exact style: Mix Devanagari Hindi for grammar/sentence connectors with English terms for technical, departmental, and official words.
+   EXAMPLES OF EXPECTED STYLE:
+   - "Railway crossing के लिए construction शुरू करने से पहले इनमें से क्या-क्या Railway को submit करना आवश्यक है?"
+   - "Manual के अनुसार 33 kV तक की Railway crossing सामान्यतः किस माध्यम से की जानी चाहिए?"
+
+2. Option Format: Format 4 options starting with "A) ", "B) ", "C) ", "D) ".
+3. Provide correctIndex (0, 1, 2, or 3).
+4. Provide a HIGHLY DETAILED, COMPREHENSIVE technical rationale ("explanation"), including the full formula and step-by-step calculation for every numerical question. Do NOT restrict to 2 or 3 lines. If needed, explain thoroughly using point-wise bullet points (e.g. using '• ' or numbered points '1. '), key safety codes, statutory regulations, technical standards, why the correct option is right, and why other options are inapplicable.
+
+Output MUST be strictly valid JSON array format without markdown fence:
+[
+  {
+    "question": "Question in natural Devanagari Hindi + English technical mix...",
+    "options": ["A) Option 1", "B) Option 2", "C) Option 3", "D) Option 4"],
+    "correctIndex": 0,
+    "explanation": "Detailed explanation with bullet points ('• ') and bold terms ('**term**') explaining why option is correct..."
+  }
+]
+
+Document Content:
+${buildRandomPDFContext()}`;
+
+            try {
+                const rawText = await fetchGeminiQuiz(apiKey, prompt);
+                let cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const jsonMatch = cleanJson.match(/\[[\s\S]*\]/);
+                if (jsonMatch) cleanJson = jsonMatch[0];
+
+                const parsedQuestions = JSON.parse(cleanJson);
+
+                if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+                    const seen = new Set();
+                    masterQuestionBank = parsedQuestions.filter(q => {
+                        if (!q || !q.question || !Array.isArray(q.options)) return false;
+                        const key = normalizeQuestion(q.question);
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                    usedQuestionIndices.clear();
+                    
+                    hideLoadingState();
+                    updateBankCounts();
+                    showToast(`PDF विश्लेषण पूर्ण! ${masterQuestionBank.length} प्रश्न लोड हो गए।`, "success");
+                } else {
+                    throw new Error("Analysis engine ने अमान्य प्रश्न-संरचना लौटाई।");
+                }
+            } catch (err) {
+                console.error(err);
+                hideLoadingState();
+                showToast(`Quiz Generator Error: ${err.message}`, "error");
+            }
+        }
+
+        // Duplicate detection helpers
+        function normalizeQuestion(t) {
+            return (t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+        }
+
+        function isDuplicateQuestion(q) {
+            const key = normalizeQuestion(q);
+            if (!key) return true;
+            return masterQuestionBank.some(existing => {
+                const ek = normalizeQuestion(existing.question);
+                return ek === key || (ek.length > 25 && key.length > 25 && (ek.includes(key) || key.includes(ek)));
+            });
+        }
+
+        // Random cross-document sampling: excerpts are drawn from RANDOM positions across the
+        // whole PDF (not page 1 first, then page 2), so topics come from anywhere in the document.
+        let pdfChunkPointer = 0;
+        const PDF_CONTEXT_BUDGET = 16000;
+        const PDF_SLICE_COUNT = 8;
+
+        function buildRandomPDFContext() {
+            const total = uploadedPDFsText.length;
+            if (total <= PDF_CONTEXT_BUDGET) return uploadedPDFsText;
+
+            const sliceLen = Math.floor(PDF_CONTEXT_BUDGET / PDF_SLICE_COUNT);
+            const starts = [];
+            for (let i = 0; i < PDF_SLICE_COUNT; i++) {
+                // one random position inside each equal band of the document => full coverage, random order
+                const bandStart = Math.floor((total / PDF_SLICE_COUNT) * i);
+                const bandEnd = Math.floor((total / PDF_SLICE_COUNT) * (i + 1)) - sliceLen;
+                starts.push(Math.max(bandStart, Math.floor(bandStart + Math.random() * Math.max(1, bandEnd - bandStart))));
+            }
+            // shuffle so the AI does not read the document front-to-back
+            for (let i = starts.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [starts[i], starts[j]] = [starts[j], starts[i]];
+            }
+            return starts
+                .map((st, i) => `\n--- EXCERPT ${i + 1} (random section of document) ---\n` + uploadedPDFsText.substring(st, st + sliceLen))
+                .join('');
+        }
+
+        // Set true when the PDF content is exhausted (no new unique questions possible)
+        let pdfExhausted = false;
+
+        function markPDFExhausted() {
+            pdfExhausted = true;
+            document.querySelectorAll('[onclick="appendMoreQuestionsFromPDF()"]').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-45', 'cursor-not-allowed');
+                btn.title = "इस PDF से और नए प्रश्न नहीं बन सकते";
+            });
+        }
+
+        async function appendMoreQuestionsFromPDF() {
+            const apiKey = getApiKey();
+
+            if (!uploadedPDFsText || uploadedPDFsText.trim().length === 0) {
+                showToast("कृपया पहले कम से कम एक विभागीय PDF दस्तावेज़ अपलोड करें।", "warning");
+                return;
+            }
+
+            if (pdfExhausted) {
+                showToast("इस PDF का पूरा content cover हो चुका है — इससे और नए प्रश्न नहीं बन सकते। नई PDF अपलोड करें।", "warning");
+                return;
+            }
+
+            // Full list of already-asked questions so the AI can avoid every one of them
+            const existingList = masterQuestionBank
+                .map((q, i) => `${i + 1}. ${q.question}`)
+                .join("\n")
+                .substring(0, 12000);
+
+            const MAX_ATTEMPTS = 4;
+            let addedTotal = 0;
+
+            showLoadingState("PDF को दोबारा पढ़कर नए unique प्रश्न बनाए जा रहे हैं...");
+
+            try {
+                for (let attempt = 1; attempt <= MAX_ATTEMPTS && addedTotal === 0; attempt++) {
+                    document.getElementById('loadingSubStatus').innerText = `Attempt ${attempt} of ${MAX_ATTEMPTS} — नए प्रश्न खोजे जा रहे हैं...`;
+
+                    const prompt = `Act as an expert departmental examiner. Identify the department and subject from the document itself and set questions at official departmental exam standard.
+Analyze the document text thoroughly and construct up to 20 NEW, DISTINCT multiple choice questions (MCQs) STRICTLY from the document content below.
+
+CRITICAL ANTI-REPEAT RULE:
+The following questions have ALREADY been asked. Do NOT repeat any of them, and do NOT reword or rephrase them. Cover only remaining, untouched facts, clauses, values, definitions or procedures from the document.
+ALREADY ASKED:
+${existingList}
+
+IMPORTANT — EXHAUSTION RULE:
+If the document genuinely contains no remaining material for even one new distinct question, output exactly this and nothing else:
+[]
+Never invent questions from outside the document just to fill the list.
+
+RANDOM COVERAGE RULE:
+The excerpts below are taken from RANDOM sections of the document, in random order. Pick topics randomly from ALL excerpts — do not work through the document from the beginning. Every call must explore different clauses, tables, values and procedures.
+
+QUESTION TYPE MIX (MANDATORY):
+Cover every question type an exam can ask from this material, not only theory:
+1. NUMERICAL / CALCULATION questions wherever the document has any figure — voltage, current, kVA/MVA rating, power factor, load, clearance in metres, cable depth, sag, distance, fees, penalty amounts, percentages, time limits, tariff rates, section numbers. Compute the answer yourself, keep options numerically close and plausible, and show the formula and step-by-step calculation in the explanation.
+2. Statutory / clause-based (Act, Rule, Section, Regulation number).
+3. Definition and full-form questions.
+4. Standard values, limits and specifications from tables.
+5. Procedure / correct-sequence questions.
+6. Practical application, safety and fault-diagnosis scenarios.
+7. "Which is NOT correct" / exception style questions.
+Aim for roughly 30-40% numerical questions whenever the document contains figures.
+
+DEPTH RULE:
+Even a short document (single page) holds many distinct questions — attack the same content from different angles (a value, its unit, its statutory basis, its calculation, its exception, the consequence of violating it). Do not stop at 10 questions if 30 more genuinely distinct ones can be framed from the material. Only the same fact asked the same way counts as a repeat.
+
+STRICT LANGUAGE & PATTERN REQUIREMENTS:
+1. Mix Devanagari Hindi for grammar/sentence connectors with English terms for technical, departmental and official words.
+2. Option Format: 4 options starting with "A) ", "B) ", "C) ", "D) ".
+3. Provide correctIndex (0, 1, 2 or 3).
+4. Provide a HIGHLY DETAILED technical rationale ("explanation") with bullet points ('• ') or numbered steps, statutory rules, full calculation steps for numerical questions, and why other options are incorrect.
+
+Output MUST be a strictly valid JSON array without markdown fence:
+[
+  {
+    "question": "...",
+    "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+    "correctIndex": 0,
+    "explanation": "..."
+  }
+]
+
+Document Content:
+${buildRandomPDFContext()}`;
+
+                    const rawText = await fetchGeminiQuiz(apiKey, prompt);
+                    let cleanJson = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    const jsonMatch = cleanJson.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) cleanJson = jsonMatch[0];
+
+                    let parsedQuestions = [];
+                    try {
+                        parsedQuestions = JSON.parse(cleanJson);
+                    } catch (parseErr) {
+                        parsedQuestions = [];
+                    }
+
+                    if (!Array.isArray(parsedQuestions)) parsedQuestions = [];
+
+                    // Keep only genuinely new, well-formed questions
+                    const freshOnes = [];
+                    parsedQuestions.forEach(q => {
+                        if (!q || !q.question || !Array.isArray(q.options) || q.options.length < 2) return;
+                        if (typeof q.correctIndex !== 'number') return;
+                        if (isDuplicateQuestion(q.question)) return;
+                        if (freshOnes.some(f => normalizeQuestion(f.question) === normalizeQuestion(q.question))) return;
+                        freshOnes.push(q);
+                    });
+
+                    if (freshOnes.length > 0) {
+                        masterQuestionBank.push(...freshOnes);
+                        addedTotal += freshOnes.length;
+                    }
+                }
+
+                hideLoadingState();
+                updateBankCounts();
+
+                if (addedTotal > 0) {
+                    showToast(`${addedTotal} नए प्रश्न जोड़े गए! कुल बैंक: ${masterQuestionBank.length}`, "success");
+                } else {
+                    markPDFExhausted();
+                    showToast(`इस PDF से सभी संभावित प्रश्न (${masterQuestionBank.length}) बन चुके हैं — और नए unique प्रश्न नहीं बन सकते। अधिक प्रश्नों के लिए नई/बड़ी PDF अपलोड करें।`, "warning");
+                }
+            } catch (err) {
+                console.error(err);
+                hideLoadingState();
+                showToast(`नए प्रश्न बनाने में त्रुटि: ${err.message}`, "error");
+            }
+        }
+
+        function getUnaskedQuestionIndices() {
+            const indices = [];
+            for (let i = 0; i < masterQuestionBank.length; i++) {
+                if (!usedQuestionIndices.has(i)) {
+                    indices.push(i);
+                }
+            }
+            return indices;
+        }
+
+        function resetQuestionHistory() {
+            usedQuestionIndices.clear();
+            pdfChunkPointer = 0;
+            attemptedQuestionsLog = [];
+            updateBankCounts();
+            showToast("Question memory and attempted history reset successfully.", "info");
+        }
+
+        function startQuiz() {
+            let unaskedIndices = getUnaskedQuestionIndices();
+
+            if (unaskedIndices.length === 0) {
+                usedQuestionIndices.clear();
+                unaskedIndices = getUnaskedQuestionIndices();
+                if (pdfExhausted) {
+                    showToast("इस PDF के सभी प्रश्न पूरे हो चुके हैं — अब वही प्रश्न दोहराए जाएँगे। नए प्रश्नों के लिए नई PDF अपलोड करें।", "warning");
+                } else {
+                    showToast("मेमोरी बैंक के सभी प्रश्न पूरे हो गए! शुरुआत से दोहराया जा रहा है।", "warning");
+                }
+            }
+
+            currentQuizSet = [];
+            const countToPick = Math.min(QUIZ_SET_SIZE, unaskedIndices.length);
+
+            for (let i = 0; i < countToPick; i++) {
+                const bankIdx = unaskedIndices[i];
+                currentQuizSet.push(masterQuestionBank[bankIdx]);
+                usedQuestionIndices.add(bankIdx);
+            }
+
+            currentQuestionIndex = 0;
+            score = 0;
+            secondsElapsed = 0;
+            clearInterval(timerInterval);
+
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                const secs = String(secondsElapsed % 60).padStart(2, '0');
+                document.getElementById('timerText').innerText = `${mins}:${secs}`;
+            }, 1000);
+
+            switchTab('quiz');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const qData = currentQuizSet[currentQuestionIndex];
+            document.getElementById('currentQNum').innerText = `Q ${currentQuestionIndex + 1}/${currentQuizSet.length}`;
+            document.getElementById('scoreText').innerText = score;
+
+            const progressPct = ((currentQuestionIndex) / currentQuizSet.length) * 100;
+            document.getElementById('progressBar').style.width = `${progressPct}%`;
+
+            document.getElementById('questionTitle').innerText = qData.question;
+            document.getElementById('nextQuestionBtn').classList.add('hidden');
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = '';
+
+            qData.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl bg-slate-900 hover:bg-slate-700/80 border border-slate-700 transition flex items-center justify-between text-slate-200 font-medium group";
+                btn.onclick = () => selectOption(idx);
+                btn.innerHTML = `
+                    <span class="option-btn-text">${optText}</span>
+                    <i class="fa-regular fa-circle text-slate-500 group-hover:text-amber-400"></i>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectOption(selectedIndex) {
+            const qData = currentQuizSet[currentQuestionIndex];
+            const isCorrect = selectedIndex === qData.correctIndex;
+
+            if (isCorrect) score++;
+
+            // LOG ATTEMPTED QUESTION FOR COMPLETE PDF EXPORT
+            attemptedQuestionsLog.push({
+                attemptNum: attemptedQuestionsLog.length + 1,
+                question: qData.question,
+                options: qData.options,
+                correctIndex: qData.correctIndex,
+                selectedIndex: selectedIndex,
+                isCorrect: isCorrect,
+                explanation: qData.explanation
+            });
+
+            const buttons = document.getElementById('optionsContainer').children;
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === qData.correctIndex) {
+                    buttons[i].className = "w-full text-left p-4 rounded-xl bg-green-950/60 border-2 border-green-500 text-green-200 font-bold flex items-center justify-between";
+                    buttons[i].querySelector('i').className = "fa-solid fa-circle-check text-green-400 text-lg";
+                } else if (i === selectedIndex && !isCorrect) {
+                    buttons[i].className = "w-full text-left p-4 rounded-xl bg-red-950/60 border-2 border-red-500 text-red-200 font-bold flex items-center justify-between";
+                    buttons[i].querySelector('i').className = "fa-solid fa-circle-xmark text-red-400 text-lg";
+                } else {
+                    buttons[i].className = "w-full text-left p-4 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-500 opacity-60 flex items-center justify-between";
+                }
+            }
+
+            openEvalModal(isCorrect, qData);
+            document.getElementById('nextQuestionBtn').classList.remove('hidden');
+        }
+
+        function openEvalModal(isCorrect, qData) {
+            const modal = document.getElementById('evalModal');
+            const header = document.getElementById('evalStatusHeader');
+            const iconCont = document.getElementById('evalIconContainer');
+            const title = document.getElementById('evalTitle');
+            const expText = document.getElementById('evalExplanationText');
+
+            if (isCorrect) {
+                header.className = "flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400";
+                iconCont.className = "w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold bg-green-500 text-slate-950";
+                iconCont.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                title.innerText = "Correct Answer!";
+            } else {
+                header.className = "flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400";
+                iconCont.className = "w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold bg-red-500 text-white";
+                iconCont.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                title.innerText = "Incorrect Answer!";
+            }
+
+            expText.innerHTML = qData.explanation;
+            modal.classList.remove('hidden');
+        }
+
+        function closeEvalModal() {
+            document.getElementById('evalModal').classList.add('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuizSet.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            clearInterval(timerInterval);
+            document.getElementById('quizSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.remove('hidden');
+            const fbNote = document.getElementById('feedbackNote');
+            if (fbNote) fbNote.classList.add('hidden');
+
+            const genBtn = document.getElementById('generateMoreBtn');
+            if (genBtn) genBtn.classList.remove('hidden');
+
+            const total = currentQuizSet.length;
+            const wrong = total - score;
+            const accuracy = Math.round((score / total) * 100);
+
+            document.getElementById('resTotalQ').innerText = total;
+            document.getElementById('resCorrect').innerText = score;
+            document.getElementById('resWrong').innerText = wrong;
+            document.getElementById('resAccuracy').innerText = `${accuracy}%`;
+
+            const unaskedRemaining = masterQuestionBank.length - usedQuestionIndices.size;
+            document.getElementById('remainingPoolInfo').innerText = `Memory Bank Status: ${unaskedRemaining} Unasked Questions Remaining`;
+            updateBankCounts();
+        }
+
+        // BUILD & DOWNLOAD COMPLETE ATTEMPTED-QUESTIONS PDF REPORT
+        function downloadAttemptedPDF() {
+            if (attemptedQuestionsLog.length === 0) {
+                showToast("No attempted questions yet. Please attempt at least one question.", "warning");
+                return;
+            }
+
+            const correctCount = attemptedQuestionsLog.filter(a => a.isCorrect).length;
+            const wrongCount = attemptedQuestionsLog.length - correctCount;
+            const now = new Date().toLocaleString('en-IN');
+
+            let htmlContent = `
+                <div style="font-family: 'Hind', 'Noto Sans Devanagari', sans-serif; color: #0f172a; padding: 24px; background: #ffffff; width: 760px;">
+                    <div style="border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 18px;">
+                        <div style="font-size: 20px; font-weight: 700;">Smart Exam Portal</div>
+                        <div style="font-size: 12px; color: #475569;">Attempted Questions Report &nbsp;|&nbsp; Generated: ${now}</div>
+                        <div style="font-size: 11px; color: #475569;">Developed by: Akhilesh Patidar (AE) &nbsp;|&nbsp; er.akhileshpatidar@gmail.com</div>
+                    </div>
+
+                    <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 25px;">
+                        <table style="width: 100%; text-align: center; font-size: 13px; border-collapse: collapse;">
+                            <tr>
+                                <td style="padding: 6px;"><strong>Total Questions Attempted:</strong> ${attemptedQuestionsLog.length}</td>
+                                <td style="padding: 6px; color: #16a34a;"><strong>Correct Answers:</strong> ${correctCount}</td>
+                                <td style="padding: 6px; color: #dc2626;"><strong>Incorrect Answers:</strong> ${wrongCount}</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <h2 style="font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 15px; color: #1e293b;">
+                        Attempted Questions Summary:
+                    </h2>
+            `;
+
+            attemptedQuestionsLog.forEach((item, index) => {
+                const statusBadge = item.isCorrect
+                    ? '<span style="color: #16a34a; font-weight: bold;">Correct</span>'
+                    : '<span style="color: #dc2626; font-weight: bold;">Incorrect</span>';
+
+                let optionsHtml = '';
+                item.options.forEach((opt, oIdx) => {
+                    let style = 'padding:4px 8px; font-size:12.5px; border-radius:4px; margin-bottom:3px;';
+                    let suffix = '';
+                    if (oIdx === item.correctIndex) {
+                        style += ' background:#dcfce7; color:#166534; font-weight:600;';
+                        suffix = ' &nbsp;(Correct Answer)';
+                    } else if (oIdx === item.selectedIndex) {
+                        style += ' background:#fee2e2; color:#991b1b; font-weight:600;';
+                        suffix = ' &nbsp;(Your Answer)';
+                    } else {
+                        style += ' color:#475569;';
+                    }
+                    optionsHtml += `<div style="${style}">${opt}${suffix}</div>`;
+                });
+
+                const plainExplanation = (item.explanation || '')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .split('\n')
+                    .filter(l => l.trim() !== '')
+                    .map(l => `<div style="margin-bottom:4px;">${l.trim()}</div>`)
+                    .join('');
+
+                htmlContent += `
+                    <div style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background-color: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'}; page-break-inside: avoid;">
+                        <div style="font-weight: bold; font-size: 14px; color: #0f172a; margin-bottom: 8px;">
+                            Q${index + 1}. ${item.question} &nbsp; ${statusBadge}
+                        </div>
+                        ${optionsHtml}
+                        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #cbd5e1; font-size:12.5px; color:#334155;">
+                            <div style="font-weight:700; margin-bottom:4px;">Technical Rationale:</div>
+                            ${plainExplanation}
+                        </div>
+                    </div>
+                `;
+            });
+
+            htmlContent += '</div>';
+
+            const container = document.getElementById('pdfExportContainer');
+            // html2pdf cannot render a display:none element — move it off-screen instead
+            container.classList.remove('hidden');
+            container.style.position = 'fixed';
+            container.style.left = '-10000px';
+            container.style.top = '0';
+            container.innerHTML = htmlContent;
+
+            showLoadingState("Building PDF report...");
+
+            html2pdf().set({
+                margin: [10, 8, 12, 8],
+                filename: `Attempted_Questions_Report_${attemptedQuestionsLog.length}Qs.pdf`,
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
+            }).from(container.firstElementChild).save().then(() => {
+                hideLoadingState();
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                showToast("PDF report downloaded successfully.", "success");
+            }).catch(err => {
+                hideLoadingState();
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                showToast(`PDF generation failed: ${err.message}`, "error");
+            });
+        }
+
+        // Format Markdown / Newlines into Clean Styled HTML
+        function formatExplanation(text) {
+            if (!text) return "";
+            
+            // Format bold tags **text** into highlighted strong tags
+            let html = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-300 font-semibold">$1</strong>');
+            
+            // Replace line breaks with paragraphs or line breaks
+            const lines = html.split('\n');
+            let formattedLines = lines.map(line => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+                    return `<div class="flex items-start gap-2 my-1.5 pl-1"><span class="text-amber-400 font-bold">•</span><div>${trimmed.substring(1).trim()}</div></div>`;
+                } else if (/^\d+\./.test(trimmed)) {
+                    return `<div class="flex items-start gap-2 my-1.5 pl-1"><span class="text-amber-400 font-bold">${trimmed.match(/^\d+\./)[0]}</span><div>${trimmed.replace(/^\d+\./, '').trim()}</div></div>`;
+                } else if (trimmed === '') {
+                    return `<div class="h-1"></div>`;
+                }
+                return `<div>${trimmed}</div>`;
+            });
+            
+            return formattedLines.join('');
+        }
+
+        function openEvalModal(isCorrect, qData) {
+            const modal = document.getElementById('evalModal');
+            const header = document.getElementById('evalStatusHeader');
+            const iconCont = document.getElementById('evalIconContainer');
+            const title = document.getElementById('evalTitle');
+            const expText = document.getElementById('evalExplanationText');
+
+            if (isCorrect) {
+                header.className = "flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400";
+                iconCont.className = "w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold bg-green-500 text-slate-950";
+                iconCont.innerHTML = `<i class="fa-solid fa-check"></i>`;
+                title.innerText = "Correct Answer!";
+            } else {
+                header.className = "flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400";
+                iconCont.className = "w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold bg-red-500 text-white";
+                iconCont.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
+                title.innerText = "Incorrect Answer!";
+            }
+
+            expText.innerHTML = formatExplanation(qData.explanation);
+            modal.classList.remove('hidden');
+        }
+
+        // ---------- INSTALLABLE APP (PWA) SUPPORT ----------
+        // App icon drawn at runtime so the file stays self-contained
+        function buildAppIcon(size) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, size, size);
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = `bold ${Math.floor(size * 0.55)}px Poppins, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u26A1', size / 2, size / 2 + size * 0.02);
+            return c.toDataURL('image/png');
+        }
+
+        function injectManifest() {
+            try {
+                const manifest = {
+                    name: "Smart Exam Portal",
+                    short_name: "Exam Portal",
+                    description: "PDF Analysis & Assessment System for All Departments",
+                    start_url: location.href.split('#')[0],
+                    scope: "./",
+                    display: "standalone",
+                    orientation: "portrait",
+                    background_color: "#0f172a",
+                    theme_color: "#0f172a",
+                    icons: [
+                        { src: buildAppIcon(192), sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                        { src: buildAppIcon(512), sizes: "512x512", type: "image/png", purpose: "any maskable" }
+                    ]
+                };
+                const blobUrl = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+                const link = document.createElement('link');
+                link.rel = 'manifest';
+                link.href = blobUrl;
+                document.head.appendChild(link);
+
+                const icon = document.createElement('link');
+                icon.rel = 'apple-touch-icon';
+                icon.href = buildAppIcon(192);
+                document.head.appendChild(icon);
+            } catch (e) {
+                console.warn('Manifest injection skipped:', e);
+            }
+        }
+
+        let deferredInstallPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const btn = document.getElementById('installAppBtn');
+            if (btn) btn.classList.remove('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            deferredInstallPrompt = null;
+            const btn = document.getElementById('installAppBtn');
+            if (btn) btn.classList.add('hidden');
+            showToast("App होम स्क्रीन पर इंस्टॉल हो गया।", "success");
+        });
+
+        async function triggerInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                if (choice && choice.outcome === 'accepted') {
+                    showToast("App इंस्टॉल हो रहा है...", "success");
+                }
+                return;
+            }
+            // no native prompt available (file:// or unsupported browser) — show manual steps
+            document.getElementById('installHelpModal').classList.remove('hidden');
+        }
+
+        // Register the offline service worker only when the page is served from a real URL
+        function registerServiceWorker() {
+            if (!('serviceWorker' in navigator)) return;
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+            navigator.serviceWorker.register('sw.js').catch(() => { /* sw.js not hosted — install still works */ });
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            updateBankCounts();
+            injectManifest();
+            registerServiceWorker();
+
+            // already installed? hide the button
+            if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+                const btn = document.getElementById('installAppBtn');
+                if (btn) btn.classList.add('hidden');
+            }
+        };
+    </script>
+</body>
+</html>

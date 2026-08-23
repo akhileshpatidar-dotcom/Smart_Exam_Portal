@@ -889,6 +889,11 @@ Cover all exam question types, not only theory:
 7. "Which is NOT correct" style questions.
 Aim for roughly 30-40% numerical questions whenever the document contains figures.
 
+
+NO LATEX RULE:
+Write all formulas, units and calculations in plain readable text using real symbols — × ÷ √ Ω ° ² φ Δ ≈ — and never use LaTeX, dollar signs, backslash commands (\\times, \\Omega, \\frac, \\text) or markdown maths.
+Example of the required style: "Power loss = 3 × I² × R = 3 × 150² × 0.03 = 2.025 kW".
+
 STRICT LANGUAGE & PATTERN REQUIREMENTS:
 1. Questions MUST follow this exact style: Mix Devanagari Hindi for grammar/sentence connectors with English terms for technical, departmental, and official words.
    EXAMPLES OF EXPECTED STYLE:
@@ -1064,6 +1069,11 @@ Aim for roughly 30-40% numerical questions whenever the document contains figure
 DEPTH RULE:
 Even a short document (single page) holds many distinct questions — attack the same content from different angles (a value, its unit, its statutory basis, its calculation, its exception, the consequence of violating it). Do not stop at 10 questions if 30 more genuinely distinct ones can be framed from the material. Only the same fact asked the same way counts as a repeat.
 
+
+NO LATEX RULE:
+Write all formulas, units and calculations in plain readable text using real symbols — × ÷ √ Ω ° ² φ Δ ≈ — and never use LaTeX, dollar signs, backslash commands (\\times, \\Omega, \\frac, \\text) or markdown maths.
+Example of the required style: "Power loss = 3 × I² × R = 3 × 150² × 0.03 = 2.025 kW".
+
 STRICT LANGUAGE & PATTERN REQUIREMENTS:
 1. Mix Devanagari Hindi for grammar/sentence connectors with English terms for technical, departmental and official words.
 2. Option Format: 4 options starting with "A) ", "B) ", "C) ", "D) ".
@@ -1206,7 +1216,7 @@ ${buildRandomPDFContext()}`;
             const progressPct = ((currentQuestionIndex) / currentQuizSet.length) * 100;
             document.getElementById('progressBar').style.width = `${progressPct}%`;
 
-            document.getElementById('questionTitle').innerText = qData.question;
+            document.getElementById('questionTitle').innerText = cleanMath(qData.question);
             document.getElementById('nextQuestionBtn').classList.add('hidden');
 
             const container = document.getElementById('optionsContainer');
@@ -1217,7 +1227,7 @@ ${buildRandomPDFContext()}`;
                 btn.className = "w-full text-left p-4 rounded-xl bg-slate-900 hover:bg-slate-700/80 border border-slate-700 transition flex items-center justify-between text-slate-200 font-medium group";
                 btn.onclick = () => selectOption(idx);
                 btn.innerHTML = `
-                    <span class="option-btn-text">${optText}</span>
+                    <span class="option-btn-text">${cleanMath(optText)}</span>
                     <i class="fa-regular fa-circle text-slate-500 group-hover:text-amber-400"></i>
                 `;
                 container.appendChild(btn);
@@ -1371,10 +1381,10 @@ ${buildRandomPDFContext()}`;
                     } else {
                         style += ' color:#475569;';
                     }
-                    optionsHtml += `<div style="${style}">${opt}${suffix}</div>`;
+                    optionsHtml += `<div style="${style}">${cleanMath(opt)}${suffix}</div>`;
                 });
 
-                const plainExplanation = (item.explanation || '')
+                const plainExplanation = cleanMath(item.explanation || '')
                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                     .split('\n')
                     .filter(l => l.trim() !== '')
@@ -1384,7 +1394,7 @@ ${buildRandomPDFContext()}`;
                 htmlContent += `
                     <div style="margin-bottom: 18px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 6px; background-color: ${index % 2 === 0 ? '#ffffff' : '#f8fafc'}; page-break-inside: avoid;">
                         <div style="font-weight: bold; font-size: 14px; color: #0f172a; margin-bottom: 8px;">
-                            Q${index + 1}. ${item.question} &nbsp; ${statusBadge}
+                            Q${index + 1}. ${cleanMath(item.question)} &nbsp; ${statusBadge}
                         </div>
                         ${optionsHtml}
                         <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #cbd5e1; font-size:12.5px; color:#334155;">
@@ -1427,8 +1437,39 @@ ${buildRandomPDFContext()}`;
             });
         }
 
+        // AI sometimes writes maths as LaTeX; render it as plain readable symbols
+        const MATH_WORDS = {
+            times: '\u00d7', cdot: '\u00b7', div: '\u00f7', pm: '\u00b1', approx: '\u2248',
+            neq: '\u2260', leq: '\u2264', geq: '\u2265', le: '\u2264', ge: '\u2265',
+            implies: '\u21d2', Rightarrow: '\u21d2', rightarrow: '\u2192', to: '\u2192',
+            Omega: '\u03a9', omega: '\u03c9', Delta: '\u0394', delta: '\u03b4',
+            phi: '\u03c6', varphi: '\u03c6', theta: '\u03b8', alpha: '\u03b1',
+            beta: '\u03b2', gamma: '\u03b3', pi: '\u03c0', mu: '\u03bc', circ: '\u00b0',
+            left: '', right: '', quad: ' ', qquad: '  ', ldots: '...', cos: 'cos',
+            sin: 'sin', tan: 'tan', log: 'log', sqrt: '\u221a'
+        };
+
+        function cleanMath(text) {
+            if (!text) return "";
+            let t = String(text);
+            t = t.replace(/\$\$([\s\S]*?)\$\$/g, '$1').replace(/\$([^$]*?)\$/g, '$1');
+            t = t.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)');
+            t = t.replace(/\\sqrt\{([^{}]*)\}/g, '\u221a$1');
+            t = t.replace(/\\(?:text|mathrm|mathbf|textbf)\{([^{}]*)\}/g, '$1');
+            t = t.replace(/\\\\/g, ' ');
+            t = t.replace(/\\([A-Za-z]+)/g, function (m, w) {
+                return MATH_WORDS.hasOwnProperty(w) ? MATH_WORDS[w] : w;
+            });
+            t = t.replace(/\\[,;!:\s]/g, ' ');
+            t = t.replace(/\^\{?2\}?/g, '\u00b2').replace(/\^\{?3\}?/g, '\u00b3');
+            t = t.replace(/_\{([^{}]*)\}/g, '$1');
+            t = t.replace(/[{}]/g, '');
+            return t.replace(/[ \t]{2,}/g, ' ').trim();
+        }
+
         // Format Markdown / Newlines into Clean Styled HTML
         function formatExplanation(text) {
+            text = cleanMath(text);
             if (!text) return "";
             
             // Format bold tags **text** into highlighted strong tags

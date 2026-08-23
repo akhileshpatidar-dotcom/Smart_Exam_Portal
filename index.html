@@ -226,7 +226,7 @@
 
         <!-- SECTION 1: PDF UPLOAD & ANALYSIS -->
         <section id="uploadSection" class="space-y-6">
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+            <div id="uploadCard" class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
                 <h2 class="text-xl font-bold text-slate-100 mb-2 flex items-center gap-2">
                     <i class="fa-solid fa-folder-open text-amber-400"></i> Upload Your Department Documents (PDF)
                 </h2>
@@ -249,7 +249,11 @@
             </div>
 
             <!-- Status & Ready Action -->
-            <div class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex justify-center items-center">
+            <div id="readyPanel" class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col justify-center items-center gap-4">
+                <div id="readyInfo" class="hidden text-center space-y-1">
+                    <div class="text-sm font-semibold text-slate-100"><span id="readyCount">0</span> प्रश्न आपकी PDF से तैयार हैं</div>
+                    <div class="text-xs text-slate-400">Start Assessment दबाकर परीक्षा शुरू करें</div>
+                </div>
                 <div id="uploadActions" class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">
                     <button id="generateMoreBtn" onclick="appendMoreQuestionsFromPDF()" class="hidden w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold px-5 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
@@ -258,6 +262,7 @@
                         <i class="fa-solid fa-play"></i> Start Assessment (10 Questions)
                     </button>
                 </div>
+                <button id="newPdfBtn" onclick="showUploadCard()" class="hidden text-xs text-slate-400 hover:text-amber-300 underline decoration-dotted">नई PDF अपलोड करें</button>
             </div>
         </section>
 
@@ -419,7 +424,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
         // Built-in analysis key (assembled at runtime, not stored as a plain string)
-        const KEY_PARTS = ["QVEuQWI4Uk42TEhkR0hxcVdk", "RnVkd2wtOFFkWWVPU2FWd0Zn", "NzJPRC1NU2dQLTlobmxySUE="];
+        const KEY_PARTS = ["QVEuQWI4Uk42SmtTZXRTMWxs", "TmFjUG1vZTVQUVo3eVRqNHhj", "Q1pYeE9DeEUtRWpYcDh2UXc="];
         function builtInKey() {
             try { return atob(KEY_PARTS.join('')); } catch (e) { return ""; }
         }
@@ -431,7 +436,10 @@
 
         function openApiKeyDialog() {
             const current = localStorage.getItem('examPortalApiKey') || '';
-            const entered = window.prompt("अपनी स्वयं की Google AI Studio API key यहाँ पेस्ट करें।\n(खाली छोड़कर OK करने पर built-in key उपयोग होगी)", current);
+            const entered = window.prompt(
+                "अपनी निःशुल्क API key यहाँ पेस्ट करें।\n\n" +
+                "कहाँ से लें: aistudio.google.com/apikey पर Google account से लॉगिन करें > 'Create API key' > key कॉपी करें।\n\n" +
+                "key इसी डिवाइस में सेव रहेगी।", current);
             if (entered === null) return;
             const clean = entered.trim();
             if (clean) {
@@ -647,12 +655,42 @@
             }
         ];
 
+        // demo set — used only until the user uploads a document
         let masterQuestionBank = [...defaultBijleeQuestions];
 
         // UI Updates for Bank Counts
         function updateBankCounts() {
             const countText = document.getElementById('pdfAttemptedCountText');
             if (countText) countText.innerText = attemptedQuestionsLog.length;
+        }
+
+        // Clean screen: after analysis only the header + Start Assessment remain
+        let focusModeActive = false;
+
+        function enterFocusMode(questionCount) {
+            focusModeActive = true;
+            const hide = ['uploadCard', 'tabBar', 'feedbackNote'];
+            hide.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+            const info = document.getElementById('readyInfo');
+            const count = document.getElementById('readyCount');
+            if (count) count.innerText = questionCount;
+            if (info) info.classList.remove('hidden');
+            const newBtn = document.getElementById('newPdfBtn');
+            if (newBtn) newBtn.classList.remove('hidden');
+            const genBtn = document.getElementById('generateMoreBtn');
+            if (genBtn) genBtn.classList.remove('hidden');
+        }
+
+        function showUploadCard() {
+            focusModeActive = false;
+            ['uploadCard', 'tabBar', 'feedbackNote'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('hidden');
+            });
+            const info = document.getElementById('readyInfo');
+            if (info) info.classList.add('hidden');
+            const newBtn = document.getElementById('newPdfBtn');
+            if (newBtn) newBtn.classList.add('hidden');
         }
 
         // UI Tab Switcher
@@ -668,7 +706,7 @@
 
             if (tab === 'upload') {
                 uploadSec.classList.remove('hidden');
-                if (feedbackNote) feedbackNote.classList.remove('hidden');
+                if (feedbackNote && !focusModeActive) feedbackNote.classList.remove('hidden');
                 quizSec.classList.add('hidden');
                 resultSec.classList.add('hidden');
 
@@ -748,6 +786,9 @@
             }
 
             if (uploadedPDFsText && uploadedPDFsText.trim().length > 0) {
+                // fresh document => drop the built-in demo questions and any earlier PDF's questions
+                masterQuestionBank = [];
+                usedQuestionIndices.clear();
                 pdfExhausted = false;
                 pdfChunkPointer = 0;
                 document.querySelectorAll('[onclick="appendMoreQuestionsFromPDF()"]').forEach(btn => {
@@ -772,18 +813,26 @@
             return extracted;
         }
 
+        let keyRejected = false;
+
         async function fetchGeminiQuiz(apiKey, prompt) {
-            const models = ["gemini-3-flash-preview", "gemini-2.0-flash", "gemini-1.5-flash"];
+            const models = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3-flash-preview"];
             let lastErr = null;
+            keyRejected = false;
+
+            if (!apiKey) {
+                throw new Error("कोई API key सेट नहीं है — header के 'API Key' बटन से अपनी key डालें।");
+            }
 
             for (const model of models) {
                 try {
                     document.getElementById('loadingSubStatus').innerText = "Document analysis engine से संपर्क किया जा रहा है...";
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
                         body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }]
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { temperature: 1.15, topP: 0.95, topK: 64 }
                         })
                     });
 
@@ -795,9 +844,16 @@
                         const errJson = await response.json().catch(() => ({}));
                         const rawMsg = errJson.error?.message || "";
                         // never surface the provider / model name to the user
-                        lastErr = /quota|rate|limit/i.test(rawMsg)
-                            ? "Daily analysis limit पूरा हो गया — कृपया कुछ समय बाद प्रयास करें।"
-                            : `Analysis engine error (code ${response.status})`;
+                        if (response.status === 401 || response.status === 403) {
+                            keyRejected = true;
+                            lastErr = "API key अमान्य या समाप्त है — कृपया header के 'API Key' बटन से अपनी key सेट करें।";
+                        } else if (response.status === 404) {
+                            lastErr = "Analysis model उपलब्ध नहीं — अगला model प्रयास किया जा रहा है...";
+                        } else if (/quota|rate|limit/i.test(rawMsg) || response.status === 429) {
+                            lastErr = "Daily analysis limit पूरा हो गया — कृपया कुछ समय बाद प्रयास करें या अपनी API key सेट करें।";
+                        } else {
+                            lastErr = `Analysis engine error (code ${response.status})`;
+                        }
                     }
                 } catch (e) {
                     lastErr = "Analysis engine से संपर्क नहीं हो सका — कृपया internet जाँचें।";
@@ -853,6 +909,8 @@ Output MUST be strictly valid JSON array format without markdown fence:
   }
 ]
 
+Randomisation tag (ignore in output, use it to vary your topic choice): ${Math.random().toString(36).slice(2)}
+
 Document Content:
 ${buildRandomPDFContext()}`;
 
@@ -873,10 +931,15 @@ ${buildRandomPDFContext()}`;
                         seen.add(key);
                         return true;
                     });
+                    for (let i = masterQuestionBank.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [masterQuestionBank[i], masterQuestionBank[j]] = [masterQuestionBank[j], masterQuestionBank[i]];
+                    }
                     usedQuestionIndices.clear();
-                    
+
                     hideLoadingState();
                     updateBankCounts();
+                    enterFocusMode(masterQuestionBank.length);
                     showToast(`PDF विश्लेषण पूर्ण! ${masterQuestionBank.length} प्रश्न लोड हो गए।`, "success");
                 } else {
                     throw new Error("Analysis engine ने अमान्य प्रश्न-संरचना लौटाई।");
@@ -884,7 +947,8 @@ ${buildRandomPDFContext()}`;
             } catch (err) {
                 console.error(err);
                 hideLoadingState();
-                showToast(`Quiz Generator Error: ${err.message}`, "error");
+                showToast(err.message, "error");
+                if (keyRejected) setTimeout(openApiKeyDialog, 600);
             }
         }
 
@@ -1061,7 +1125,8 @@ ${buildRandomPDFContext()}`;
             } catch (err) {
                 console.error(err);
                 hideLoadingState();
-                showToast(`नए प्रश्न बनाने में त्रुटि: ${err.message}`, "error");
+                showToast(err.message, "error");
+                if (keyRejected) setTimeout(openApiKeyDialog, 600);
             }
         }
 
@@ -1084,6 +1149,12 @@ ${buildRandomPDFContext()}`;
         }
 
         function startQuiz() {
+            if (masterQuestionBank.length === 0) {
+                showToast("कोई प्रश्न उपलब्ध नहीं — कृपया पहले PDF अपलोड करें या दोबारा विश्लेषण करें।", "warning");
+                showUploadCard();
+                return;
+            }
+
             let unaskedIndices = getUnaskedQuestionIndices();
 
             if (unaskedIndices.length === 0) {
@@ -1098,6 +1169,12 @@ ${buildRandomPDFContext()}`;
 
             currentQuizSet = [];
             const countToPick = Math.min(QUIZ_SET_SIZE, unaskedIndices.length);
+
+            // shuffle the unasked pool so every set (and the first question) is random
+            for (let i = unaskedIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [unaskedIndices[i], unaskedIndices[j]] = [unaskedIndices[j], unaskedIndices[i]];
+            }
 
             for (let i = 0; i < countToPick; i++) {
                 const bankIdx = unaskedIndices[i];

@@ -127,7 +127,7 @@
     <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-lg">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
             <div class="flex items-center space-x-3">
-                <button id="backBtn" onclick="goBack()" class="hidden w-10 h-10 items-center justify-center rounded-full bg-slate-700/70 hover:bg-slate-600 text-slate-200 border border-slate-600 text-lg" title="वापस">
+                <button id="backBtn" onclick="goBack()" class="hidden w-10 h-10 items-center justify-center rounded-full bg-slate-700/70 hover:bg-slate-600 text-slate-200 border border-slate-600 text-lg" title="Back">
                     <i class="fa-solid fa-arrow-left"></i>
                 </button>
                 <div class="p-2.5 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 rounded-xl font-bold shadow-md shadow-amber-500/20">
@@ -182,7 +182,7 @@
             <div class="space-y-2">
                 <h3 class="text-xl font-bold text-slate-100">PDF Text Analysis in Progress</h3>
                 <p id="loadingMessage" class="text-xs text-slate-400 leading-relaxed">
-                    सिस्टम आपके PDF दस्तावेज़ों को पढ़कर तकनीकी MCQ तैयार कर रहा है (Devanagari Hindi + English mix format)। कृपया प्रतीक्षा करें...
+                    System आपकी PDF पढ़कर technical MCQ तैयार कर रहा है (Devanagari Hindi + English mix format)। कृपया wait करें...
                 </p>
             </div>
             <div class="flex justify-center items-center gap-3 pt-2 text-amber-400 text-sm font-semibold">
@@ -214,7 +214,7 @@
                 <div class="w-11 h-11 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-xl flex items-center justify-center text-xl">
                     <i class="fa-solid fa-mobile-screen-button"></i>
                 </div>
-                <h3 class="text-base font-bold text-slate-100">होम स्क्रीन पर App की तरह जोड़ें</h3>
+                <h3 class="text-base font-bold text-slate-100">Home screen पर App की तरह जोड़ें</h3>
             </div>
             <div class="text-xs text-slate-300 leading-relaxed space-y-3">
                 <div>
@@ -226,7 +226,7 @@
                     नीचे <strong>Share</strong> बटन → <strong>"Add to Home Screen"</strong>।
                 </div>
             </div>
-            <button onclick="document.getElementById('installHelpModal').classList.add('hidden')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">ठीक है</button>
+            <button onclick="document.getElementById('installHelpModal').classList.add('hidden')" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">OK</button>
         </div>
     </div>
 
@@ -239,28 +239,28 @@
             </div>
 
             <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-300">प्रश्नों की संख्या (per set)</label>
+                <label class="text-xs font-semibold text-slate-300">Questions per set</label>
                 <div class="grid grid-cols-4 gap-2" id="setSizeGroup"></div>
             </div>
 
             <div class="space-y-1">
                 <label class="text-xs font-semibold text-slate-300">Negative marking</label>
                 <select id="negMarkSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
-                    <option value="0">कोई नहीं</option>
-                    <option value="0.25">-0.25 प्रति गलत</option>
-                    <option value="0.3333333333333333">-1/3 प्रति गलत (3 गलत = 1 अंक कटेगा)</option>
-                    <option value="1">-1 प्रति गलत</option>
+                    <option value="0">None</option>
+                    <option value="0.25">-0.25 per wrong</option>
+                    <option value="0.3333333333333333">-1/3 per wrong (3 Wrong = 1 अंक कटेगा)</option>
+                    <option value="1">-1 per wrong</option>
                 </select>
             </div>
 
             <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-300">प्रति प्रश्न समय-सीमा</label>
+                <label class="text-xs font-semibold text-slate-300">Time per question</label>
                 <select id="perQTimeSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
-                    <option value="0">बंद</option>
-                    <option value="30">30 सेकंड</option>
-                    <option value="45">45 सेकंड</option>
-                    <option value="60">60 सेकंड</option>
-                    <option value="90">90 सेकंड</option>
+                    <option value="0">Off</option>
+                    <option value="30">30 seconds</option>
+                    <option value="45">45 seconds</option>
+                    <option value="60">60 seconds</option>
+                    <option value="90">90 seconds</option>
                 </select>
             </div>
 
@@ -280,24 +280,26 @@
             </div>
 
             <div class="border-t border-slate-700 pt-3 space-y-2">
-                <label class="text-xs font-semibold text-slate-300">API Key (केवल इस डिवाइस में सेव)</label>
-                <input id="apiKeyInput" type="password" placeholder="अपनी key पेस्ट करें (खाली = built-in)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
-                <button onclick="saveApiKeyFromInput()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-sm">Key सेव करें</button>
+                <label class="text-xs font-semibold text-slate-300">API Key (सिर्फ़ इस device में save)</label>
+                <input id="apiKeyInput" type="password" placeholder="अपनी key paste करें (खाली = built-in)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                <button onclick="saveApiKeyFromInput()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-sm">Save Key</button>
             </div>
 
-            <div class="border-t border-slate-700 pt-3 grid grid-cols-2 gap-2">
-                <button onclick="exportQuestionBank()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-export"></i> Bank निर्यात</button>
-                <button onclick="document.getElementById('bankImportInput').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-import"></i> Bank आयात</button>
+            <div id="storageInfo" class="text-[11px] text-slate-400 border-t border-slate-700 pt-3"></div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="exportQuestionBank()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-export"></i> Export Bank</button>
+                <button onclick="document.getElementById('bankImportInput').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-file-import"></i> Import Bank</button>
                 <input type="file" id="bankImportInput" accept=".json" class="hidden" onchange="importQuestionBank(event)">
             </div>
 
-            <button onclick="closeSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">बंद करें</button>
+            <button onclick="closeSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">Off करें</button>
         </div>
     </div>
 
     <!-- OFFLINE BANNER -->
     <div id="offlineBanner" class="hidden fixed bottom-0 left-0 right-0 z-40 bg-amber-500 text-slate-950 text-xs font-bold text-center py-2">
-        <i class="fa-solid fa-wifi"></i> आप offline हैं — सेव किए गए प्रश्नों से परीक्षा चल सकती है, नए प्रश्न नहीं बनेंगे।
+        <i class="fa-solid fa-wifi"></i> आप offline हैं — save किए questions से assessment चल सकता है, नए questions नहीं बनेंगे।
     </div>
 
     <!-- Main Container -->
@@ -337,11 +339,20 @@
                 <div id="fileList" class="mt-4 space-y-2"></div>
             </div>
 
+            <!-- SAVED DOCUMENTS (LIBRARY) -->
+            <div id="libraryCard" class="hidden bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg">
+                <h2 class="text-base font-bold text-slate-100 mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-amber-400"></i> My Saved PDFs
+                </h2>
+                <p class="text-xs text-slate-400 mb-3">किसी भी PDF पर click करके वहीं से पढ़ाई continue करें — दोबारा upload करने की ज़रूरत नहीं।</p>
+                <div id="libraryList" class="space-y-2"></div>
+            </div>
+
             <!-- Status & Ready Action -->
             <div id="readyPanel" class="bg-slate-800/80 rounded-xl p-6 border border-slate-700 flex flex-col justify-center items-center gap-4">
                 <div id="readyInfo" class="hidden text-center space-y-1">
                     <div class="text-sm font-semibold text-slate-100"><span id="readyCount">0</span> प्रश्न आपकी PDF से तैयार हैं</div>
-                    <div class="text-xs text-slate-400">Start Assessment दबाकर परीक्षा शुरू करें — शेष प्रश्न पृष्ठभूमि में जुड़ते रहेंगे</div>
+                    <div class="text-xs text-slate-400">Start Assessment दबाएँ — बाकी questions background में जुड़ते रहेंगे</div>
                     <div id="readyBgStatus" class="text-[11px] text-amber-300 hidden"></div>
                 </div>
                 <div id="uploadActions" class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-xl">
@@ -455,8 +466,11 @@
                     <button onclick="appendMoreQuestionsFromPDF()" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 transition">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
                     </button>
+                    <button id="retryExhaustedBtn" onclick="retryExhaustedDocument()" class="hidden bg-slate-700 hover:bg-slate-600 text-amber-200 border border-amber-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i> और Questions खोजें
+                    </button>
                     <button id="mistakesBtn" onclick="startMistakesQuiz()" class="hidden bg-red-500/15 hover:bg-red-500/25 text-red-200 border border-red-500/40 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-rotate-left"></i> मेरी गलतियाँ दोहराएँ (<span id="mistakeCount">0</span>)
+                        <i class="fa-solid fa-rotate-left"></i> Wrong Questions दोबारा (<span id="mistakeCount">0</span>)
                     </button>
                     <button onclick="resetQuestionHistory()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2">
                         <i class="fa-solid fa-rotate-right"></i> Reset Memory
@@ -542,9 +556,9 @@
         function openApiKeyDialog() {
             const current = localStorage.getItem('examPortalApiKey') || '';
             const entered = window.prompt(
-                "अपनी निःशुल्क API key यहाँ पेस्ट करें।\n\n" +
-                "कहाँ से लें: aistudio.google.com/apikey पर Google account से लॉगिन करें > 'Create API key' > key कॉपी करें।\n\n" +
-                "key इसी डिवाइस में सेव रहेगी।", current);
+                "अपनी free API key यहाँ paste करें।\n\n" +
+                "कहाँ से लें: aistudio.google.com/apikey पर Google account से लॉगिन करें > 'Create API key' > key copy करें।\n\n" +
+                "Key इसी device में save रहेगी।", current);
             if (entered === null) return;
             const clean = entered.trim();
             if (clean) {
@@ -552,7 +566,7 @@
                 showToast("आपकी API key सुरक्षित रूप से इस डिवाइस में सेव हो गई।", "success");
             } else {
                 localStorage.removeItem('examPortalApiKey');
-                showToast("अब built-in key का उपयोग होगा।", "info");
+                showToast("अब built-in key use होगी।", "info");
             }
         }
 
@@ -677,7 +691,7 @@
                     "D) केवल AB switch lock"
                 ],
                 correctIndex: 1,
-                explanation: "Dead line (de-energized line) पर काम करते समय linemen की सुरक्षा सुनिश्चित करने के लिए निम्नलिखित प्रक्रिया का पालन अनिवार्य है:\n\n1. **Back-feed Protection**: दूरस्थ जनरेटर, solar rooftop या गलती से back-feed supply चालू होने पर झटके से बचाने के लिए working location के दोनों तरफ **Discharge rods / Temporary Earthing** लगाई जाती है।\n2. **Induced Voltage Discharge**: पास की live HT lines से पैदा होने वाले static/induced charge को सुरक्षित तरीके से earth में discharge करने के लिए यह प्राथमिक सुरक्षा मापदंड है।\n3. **Permit to Work (PTW)**: Earth लगाने के बाद ही supervisor लाइन पर काम करने की अनुमति देता है।"
+                explanation: "Dead line (de-energized line) पर काम करते समय linemen की सुरक्षा सुनिश्चित करने के लिए निम्नलिखित प्रक्रिया का पालन अनिवार्य है:\n\n1. **Back-feed Protection**: दूरस्थ जनरेटर, solar rooftop या Wrongी से back-feed supply चालू होने पर झटके से बचाने के लिए working location के दोनों तरफ **Discharge rods / Temporary Earthing** लगाई जाती है।\n2. **Induced Voltage Discharge**: पास की live HT lines से पैदा होने वाले static/induced charge को सुरक्षित तरीके से earth में discharge करने के लिए यह प्राथमिक सुरक्षा मापदंड है।\n3. **Permit to Work (PTW)**: Earth लगाने के बाद ही supervisor लाइन पर काम करने की अनुमति देता है।"
             },
             {
                 question: "Manual के अनुसार Live LT line पर कौन-सा काम safety equipment के साथ permitted बताया गया है?",
@@ -900,8 +914,24 @@
             document.getElementById('fontScaleRange').value = settings.fontScale;
             document.getElementById('apiKeyInput').value = localStorage.getItem('examPortalApiKey') || '';
             applySettings();
+            showStorageInfo();
             document.getElementById('settingsModal').classList.remove('hidden');
             pushScreenState('settingsModal');
+        }
+
+        async function showStorageInfo() {
+            const el = document.getElementById('storageInfo');
+            if (!el) return;
+            const docs = library.length;
+            const questions = library.reduce((n, d) => n + ((d.bank || []).length), 0);
+            let usage = '';
+            try {
+                if (navigator.storage && navigator.storage.estimate) {
+                    const est = await navigator.storage.estimate();
+                    usage = ` • ${(est.usage / 1048576).toFixed(1)} MB used (available ${(est.quota / 1048576).toFixed(0)} MB)`;
+                }
+            } catch (e) {}
+            el.innerHTML = `<i class="fa-solid fa-database mr-1"></i> ${docs} PDF, ${questions} questions saved${usage} • storage: ${idb ? 'IndexedDB' : 'localStorage'}`;
         }
 
         function closeSettings() {
@@ -920,10 +950,11 @@
             const v = (document.getElementById('apiKeyInput').value || '').trim();
             if (v) {
                 localStorage.setItem('examPortalApiKey', v);
-                showToast("आपकी API key इस डिवाइस में सेव हो गई।", "success");
+                quotaExhausted = false;
+                showToast("आपकी API key इस device में save हो गई।", "success");
             } else {
                 localStorage.removeItem('examPortalApiKey');
-                showToast("अब built-in key का उपयोग होगा।", "info");
+                showToast("अब built-in key use होगी।", "info");
             }
         }
 
@@ -948,7 +979,7 @@
         // ---------- QUESTION BANK EXPORT / IMPORT ----------
         function exportQuestionBank() {
             if (masterQuestionBank.length === 0) {
-                showToast("निर्यात के लिए कोई प्रश्न नहीं है।", "warning");
+                showToast("Export के लिए कोई question नहीं है।", "warning");
                 return;
             }
             const blob = new Blob([JSON.stringify({ version: 1, savedAt: new Date().toISOString(), questions: masterQuestionBank }, null, 2)], { type: 'application/json' });
@@ -956,7 +987,7 @@
             a.href = URL.createObjectURL(blob);
             a.download = `question-bank-${masterQuestionBank.length}.json`;
             a.click();
-            showToast(`${masterQuestionBank.length} प्रश्न निर्यात हो गए।`, "success");
+            showToast(`${masterQuestionBank.length} questions export हो गए।`, "success");
         }
 
         async function importQuestionBank(ev) {
@@ -966,17 +997,17 @@
                 const data = JSON.parse(await file.text());
                 const list = Array.isArray(data) ? data : data.questions;
                 const valid = (list || []).filter(isValidQuestion);
-                if (valid.length === 0) throw new Error('कोई मान्य प्रश्न नहीं मिला');
+                if (valid.length === 0) throw new Error('कोई valid question नहीं मिला');
                 masterQuestionBank = valid;
                 usedQuestionIndices.clear();
                 usingDemoBank = false;
                 updateBankCounts();
                 enterFocusMode(masterQuestionBank.length);
                 saveMemory();
-                showToast(`${valid.length} प्रश्न आयात हो गए।`, "success");
+                showToast(`${valid.length} questions import हो गए।`, "success");
                 closeSettings();
             } catch (e) {
-                showToast("आयात असफल: " + e.message, "error");
+                showToast("Import fail: " + e.message, "error");
             }
             ev.target.value = '';
         }
@@ -984,56 +1015,264 @@
         // ---------- PERSISTENT MEMORY ----------
         // The full extracted text of every uploaded page is kept, so the user never
         // has to upload the same document again — not even after closing the app.
-        const MEMORY_KEY = 'examPortalMemory';
+        const MEMORY_KEY = 'examPortalMemory';      // legacy single-document store
+        const LIBRARY_KEY = 'examPortalLibrary';    // every uploaded document, kept side by side
+        let library = [];          // [{ id, name, text, bank, used, exhausted, savedAt }]
+        let activeDocId = null;
 
-        function saveMemory() {
-            try {
-                if (!uploadedPDFsText && masterQuestionBank.length === 0) return;
-                localStorage.setItem(MEMORY_KEY, JSON.stringify({
-                    text: uploadedPDFsText,
-                    bank: masterQuestionBank,
-                    used: Array.from(usedQuestionIndices),
-                    files: pdfFileList.map(f => f.name),
-                    exhausted: pdfExhausted,
-                    savedAt: Date.now()
-                }));
-            } catch (e) {
-                console.warn('memory save skipped (storage full)', e);
+        // ---------- LARGE-CAPACITY STORAGE (IndexedDB) ----------
+        // localStorage caps out around 5 MB; IndexedDB gives hundreds of MB, so the full
+        // text of many large documents can be kept without ever dropping any.
+        let idb = null;
+
+        function openIDB() {
+            return new Promise(resolve => {
+                if (!window.indexedDB) return resolve(null);
+                const req = indexedDB.open('examPortalDB', 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains('docs')) db.createObjectStore('docs', { keyPath: 'id' });
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+        }
+
+        function idbAll() {
+            return new Promise(resolve => {
+                if (!idb) return resolve([]);
+                try {
+                    const tx = idb.transaction('docs', 'readonly');
+                    const rq = tx.objectStore('docs').getAll();
+                    rq.onsuccess = () => resolve(rq.result || []);
+                    rq.onerror = () => resolve([]);
+                } catch (e) { resolve([]); }
+            });
+        }
+
+        function idbPut(doc) {
+            return new Promise(resolve => {
+                if (!idb) return resolve(false);
+                try {
+                    const tx = idb.transaction('docs', 'readwrite');
+                    tx.objectStore('docs').put(JSON.parse(JSON.stringify(doc)));
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                } catch (e) { resolve(false); }
+            });
+        }
+
+        function idbDelete(id) {
+            return new Promise(resolve => {
+                if (!idb) return resolve(false);
+                try {
+                    const tx = idb.transaction('docs', 'readwrite');
+                    tx.objectStore('docs').delete(id);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                } catch (e) { resolve(false); }
+            });
+        }
+
+        function idbClear() {
+            return new Promise(resolve => {
+                if (!idb) return resolve(false);
+                try {
+                    const tx = idb.transaction('docs', 'readwrite');
+                    tx.objectStore('docs').clear();
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
+                } catch (e) { resolve(false); }
+            });
+        }
+
+        async function initStorage() {
+            idb = await openIDB();
+            const stored = await idbAll();
+            if (stored.length) {
+                library = stored;
+            } else {
+                loadLibrary();                          // migrate whatever localStorage holds
+                for (const doc of library) await idbPut(doc);
+                if (library.length && idb) {
+                    try { localStorage.removeItem(LIBRARY_KEY); } catch (e) {}
+                }
             }
+            renderLibrary();
+            return library.length > 0;
+        }
+
+        function loadLibrary() {
+            try { library = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]'); } catch (e) { library = []; }
+            if (!Array.isArray(library)) library = [];
+
+            // one-time migration of the old single-document memory
+            try {
+                const legacy = JSON.parse(localStorage.getItem(MEMORY_KEY) || 'null');
+                if (legacy && Array.isArray(legacy.bank) && legacy.bank.length) {
+                    library.push({
+                        id: 'doc-' + (legacy.savedAt || Date.now()),
+                        name: (legacy.files || []).join(', ') || 'पुराना PDF',
+                        text: legacy.text || '',
+                        bank: legacy.bank,
+                        used: legacy.used || [],
+                        exhausted: !!legacy.exhausted,
+                        savedAt: legacy.savedAt || Date.now()
+                    });
+                    localStorage.removeItem(MEMORY_KEY);
+                    persistLibrary();
+                }
+            } catch (e) {}
+        }
+
+        function persistLibrary() {
+            if (idb) {
+                const doc = activeDoc();
+                if (doc) idbPut(doc);
+                else library.forEach(d => idbPut(d));
+                return true;
+            }
+            const attempt = () => localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
+            try { attempt(); return true; } catch (e) {
+                // storage full: drop the raw text of the oldest documents (questions are kept)
+                const order = library.slice().sort((a, b) => a.savedAt - b.savedAt);
+                for (const doc of order) {
+                    if (!doc.text) continue;
+                    doc.text = '';
+                    doc.textDropped = true;
+                    try { attempt(); showToast("जगह बचाने के लिए पुराने PDF का text delete हुआ (questions saved हैं)।", "info"); return true; } catch (e2) {}
+                }
+                showToast("Storage भर गया — कुछ PDF delete करनी पड़ेंगी।", "warning");
+                return false;
+            }
+        }
+
+        function activeDoc() {
+            return library.find(d => d.id === activeDocId) || null;
+        }
+
+        // Writes the running state into whichever document is open
+        function saveMemory() {
+            if (!uploadedPDFsText && masterQuestionBank.length === 0) return;
+            let doc = activeDoc();
+            if (!doc) {
+                doc = {
+                    id: 'doc-' + Date.now(),
+                    name: pdfFileList.map(f => f.name).join(', ') || 'PDF',
+                    savedAt: Date.now()
+                };
+                library.push(doc);
+                activeDocId = doc.id;
+            }
+            doc.text = uploadedPDFsText;
+            doc.bank = masterQuestionBank;
+            doc.used = Array.from(usedQuestionIndices);
+            doc.exhausted = pdfExhausted;
+            doc.savedAt = Date.now();
+            if (pdfFileList.length) doc.name = pdfFileList.map(f => f.name).join(', ');
+            persistLibrary();
+            renderLibrary();
+        }
+
+        // Starts a brand-new document without touching the ones already saved
+        function beginNewDocument() {
+            activeDocId = null;
+            uploadedPDFsText = "";
+            masterQuestionBank = [];
+            usedQuestionIndices.clear();
+            pdfExhausted = false;
+            quotaExhausted = false;
+            scannedPageImages = [];
+            usingDemoBank = false;
+            coverageBand = 0;
         }
 
         function clearMemory() {
-            try { localStorage.removeItem(MEMORY_KEY); } catch (e) {}
+            idbClear();
+            try { localStorage.removeItem(LIBRARY_KEY); localStorage.removeItem(MEMORY_KEY); } catch (e) {}
+            library = [];
+            activeDocId = null;
         }
 
-        function restoreMemory() {
-            let data = null;
-            try { data = JSON.parse(localStorage.getItem(MEMORY_KEY) || 'null'); } catch (e) { return false; }
-            if (!data || !Array.isArray(data.bank) || data.bank.length === 0) return false;
-
-            uploadedPDFsText = data.text || "";
-            masterQuestionBank = data.bank;
-            usedQuestionIndices = new Set(data.used || []);
-            pdfExhausted = !!data.exhausted;
+        function openDocument(id) {
+            const doc = library.find(d => d.id === id);
+            if (!doc) return;
+            activeDocId = id;
+            uploadedPDFsText = doc.text || "";
+            masterQuestionBank = Array.isArray(doc.bank) ? doc.bank : [];
+            usedQuestionIndices = new Set(doc.used || []);
+            pdfExhausted = !!doc.exhausted;
+            scannedPageImages = [];
             usingDemoBank = false;
-
-            const names = (data.files || []).join(', ');
-            const list = document.getElementById('fileList');
-            if (list && names) {
-                list.innerHTML = `
-                    <div class="bg-slate-900 p-3 rounded-lg border border-slate-700 flex items-center justify-between text-sm">
-                        <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-database text-amber-400 text-lg"></i>
-                            <span class="font-medium text-slate-200">${names}</span>
-                        </div>
-                        <span class="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">Memory में सुरक्षित ✓</span>
-                    </div>`;
-            }
+            coverageBand = 0;
+            pdfFileList = [];
+            document.getElementById('fileList').innerHTML = '';
 
             updateBankCounts();
             enterFocusMode(masterQuestionBank.length);
+            syncRetryButton();
+            renderLibrary();
             const unasked = masterQuestionBank.length - usedQuestionIndices.size;
-            showToast(`पिछली PDF की memory मिली — ${masterQuestionBank.length} प्रश्न (${unasked} अनपूछे) तैयार हैं। दोबारा अपलोड करने की ज़रूरत नहीं।`, "success");
+            showToast(`"${doc.name}" open हुआ — ${masterQuestionBank.length} प्रश्न, बाकी ${unasked}.`, "success");
+            if (!doc.text) showToast("इस PDF का text delete हो गया था — नए questions के लिए PDF दोबारा upload करें।", "info");
+        }
+
+        function deleteDocument(id, ev) {
+            if (ev) ev.stopPropagation();
+            const doc = library.find(d => d.id === id);
+            if (!doc || !confirm(`"${doc.name}" और उसके ${(doc.bank || []).length} questions delete कर दें?`)) return;
+            library = library.filter(d => d.id !== id);
+            if (idb) idbDelete(id); else persistLibrary();
+            if (activeDocId === id) {
+                beginNewDocument();
+                exitFocusMode();
+                updateBankCounts();
+            }
+            renderLibrary();
+            showToast("PDF delete हो गई।", "info");
+        }
+
+        function renderLibrary() {
+            const wrap = document.getElementById('libraryCard');
+            const list = document.getElementById('libraryList');
+            if (!wrap || !list) return;
+            if (library.length === 0) { wrap.classList.add('hidden'); return; }
+            wrap.classList.remove('hidden');
+
+            list.innerHTML = library
+                .slice()
+                .sort((a, b) => b.savedAt - a.savedAt)
+                .map(doc => {
+                    const bank = (doc.bank || []).length;
+                    const unasked = bank - (doc.used || []).length;
+                    const when = new Date(doc.savedAt).toLocaleDateString('en-IN') + ' ' +
+                        new Date(doc.savedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                    const isActive = doc.id === activeDocId;
+                    return `
+                    <div onclick="openDocument('${doc.id}')" class="cursor-pointer bg-slate-900 hover:bg-slate-900/60 border ${isActive ? 'border-amber-500' : 'border-slate-700'} rounded-lg p-3 flex items-center justify-between gap-3 transition">
+                        <div class="min-w-0">
+                            <div class="text-sm font-semibold text-slate-100 truncate">
+                                <i class="fa-regular fa-file-pdf text-amber-400 mr-1.5"></i>${doc.name}
+                                ${isActive ? '<span class="ml-2 text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded font-bold">Active</span>' : ''}
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-0.5">
+                                ${bank} प्रश्न • बाकी ${unasked} • ${when}${doc.exhausted ? ' • पूरा cover हो गया' : ''}${doc.textDropped ? ' • text delete हुआ' : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-xs bg-amber-500 text-slate-950 font-bold px-2.5 py-1.5 rounded">Open</span>
+                            <button onclick="deleteDocument('${doc.id}', event)" title="Delete" class="text-slate-500 hover:text-red-400 px-2 py-1.5"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>`;
+                }).join('');
+        }
+
+        async function restoreMemory() {
+            await initStorage();
+            if (library.length === 0) return false;
+            // open the most recently used document automatically
+            const latest = library.slice().sort((a, b) => b.savedAt - a.savedAt)[0];
+            openDocument(latest.id);
             return true;
         }
 
@@ -1151,20 +1390,15 @@
             const fileListContainer = document.getElementById('fileList');
 
             // the moment the user brings their own document, the demo set is dropped
-            if (usingDemoBank) {
-                masterQuestionBank = [];
-                usedQuestionIndices.clear();
-                usingDemoBank = false;
-                scannedPageImages = [];
-                clearMemory();
-            }
+            // a fresh upload starts its own document; saved ones stay in the library
+            beginNewDocument();
             
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 if (file.type !== 'application/pdf') continue;
 
                 if (pdfFileList.some(f => f.name === file.name && f.size === file.size)) {
-                    showToast(`"${file.name}" पहले ही जोड़ी जा चुकी है।`, "info");
+                    showToast(`"${file.name}" पहले ही add हो चुकी है।`, "info");
                     return;
                 }
                 pdfFileList.push(file);
@@ -1187,7 +1421,7 @@
                     legacyLinesConverted = 0;
                     text = fixLegacyHindi(text);
                     if (legacyLinesConverted > 0) {
-                        showToast(`"${file.name}" में Kruti Dev हिंदी मिली — ${legacyLinesConverted} पंक्तियाँ Unicode में बदल दी गईं।`, "info");
+                        showToast(`"${file.name}" में Kruti Dev Hindi मिली — ${legacyLinesConverted} lines Unicode में convert हो गईं।`, "info");
                     }
                     uploadedPDFsText += `\n--- START PDF: ${file.name} ---\n` + text;
                     document.getElementById(statusId).className = "text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded";
@@ -1199,12 +1433,13 @@
                         // scanned document => read the pages as images
                         document.getElementById(statusId).className = "text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded";
                         document.getElementById(statusId).innerText = "Scanned – reading pages";
-                        showLoadingState("Scanned PDF मिली — पन्नों को पढ़ा जा रहा है...");
+                        showLoadingState("Scanned PDF मिली — pages पढ़े जा रहे हैं...");
                         try {
-                            const imgs = await renderPDFPagesToImages(file, 40);
+                                            const imgs = await renderPDFPagesToImages(file, 400);
                             scannedPageImages.push(...imgs);
                             // read the pages once and keep the text, so the file never needs re-uploading
                             const ocrText = await transcribeScannedPages(imgs, file.name);
+                            scannedPageImages = [];
                             if (ocrText && ocrText.length > 200) {
                                 uploadedPDFsText += `\n--- START PDF (scanned): ${file.name} ---\n` + ocrText;
                                 scannedPageImages = [];   // text is enough now — keeps later calls light and fast
@@ -1212,10 +1447,10 @@
                             document.getElementById(statusId).className = "text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded";
                             document.getElementById(statusId).innerText = `Scanned ✓ (${imgs.length} pages)`;
                             saveMemory();
-                            showToast(`"${file.name}" scanned PDF है — ${imgs.length} पन्ने पढ़ लिए गए और memory में सुरक्षित हैं।`, "success");
+                            showToast(`"${file.name}" scanned PDF है — ${imgs.length} pages पढ़ लिए गए और memory में safe हैं।`, "success");
                         } catch (e2) {
                             document.getElementById(statusId).innerText = "Page render error";
-                            showToast(`"${file.name}" के पन्ने पढ़े नहीं जा सके।`, "error");
+                            showToast(`"${file.name}" के pages पढ़े नहीं जा सके।`, "error");
                         }
                         hideLoadingState();
                     } else {
@@ -1249,7 +1484,7 @@
             const pages = Math.min(pdf.numPages, maxPages);
 
             for (let i = 1; i <= pages; i++) {
-                document.getElementById('loadingSubStatus').innerText = `Scanned page ${i}/${pages} पढ़ा जा रहा है...`;
+                document.getElementById('loadingSubStatus').innerText = `Page ${i}/${pages} तैयार हो रहा है...`;
                 const page = await pdf.getPage(i);
                 const viewport = page.getViewport({ scale: 1.8 });
                 const canvas = document.createElement('canvas');
@@ -1261,14 +1496,20 @@
             return images;
         }
 
+        let ocrCancelled = false;
+
         // Reads scanned page images in batches and returns their text
         async function transcribeScannedPages(images, fileName) {
+            ocrCancelled = false;
             let all = '';
-            const BATCH = 2;
+            const BATCH = 4;
             for (let i = 0; i < images.length; i += BATCH) {
                 const batch = images.slice(i, i + BATCH);
-                document.getElementById('loadingSubStatus').innerText =
-                    `Scanned पन्नों का text निकाला जा रहा है (${Math.min(i + BATCH, images.length)}/${images.length})...`;
+                if (ocrCancelled) break;
+                const done = Math.min(i + BATCH, images.length);
+                document.getElementById('loadingSubStatus').innerHTML =
+                    `Scanned पन्नों का text निकाला जा रहा है — ${done}/${images.length} pages (${Math.round(done / images.length * 100)}%)` +
+                    ` &nbsp;<button onclick="ocrCancelled = true" style="text-decoration:underline">Stop</button>`;
                 try {
                     const txt = await fetchGeminiQuiz(
                         getApiKey(),
@@ -1278,6 +1519,7 @@
                     all += '\n' + txt;
                 } catch (e) {
                     console.warn('page batch transcription failed', e);
+                    if (quotaExhausted) break;
                 }
             }
             return all.trim();
@@ -1302,6 +1544,7 @@
         }
 
         let keyRejected = false;
+        let quotaExhausted = false;
 
         async function fetchGeminiQuiz(apiKey, prompt, images) {
             const models = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3-flash-preview"];
@@ -1309,7 +1552,7 @@
             keyRejected = false;
 
             if (!apiKey) {
-                throw new Error("कोई API key सेट नहीं है — header के 'API Key' बटन से अपनी key डालें।");
+                throw new Error("कोई API key set नहीं है — Settings में अपनी key डालें।");
             }
 
             const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1339,17 +1582,21 @@
                     } else {
                         const errJson = await response.json().catch(() => ({}));
                         const rawMsg = errJson.error?.message || "";
-                        retryable = [429, 500, 502, 503, 504].includes(response.status);
+                        // 429 = quota/rate limit — retrying only wastes the user's time
+                        retryable = [500, 502, 503, 504].includes(response.status);
+                        const isQuota = response.status === 429 || /quota|exceed/i.test(rawMsg);
                         // never surface the provider / model name to the user
                         if (response.status === 401 || response.status === 403) {
                             keyRejected = true;
-                            lastErr = "API key अमान्य या समाप्त है — कृपया header के 'API Key' बटन से अपनी key सेट करें।";
+                            lastErr = "API key invalid या expire है — Settings में अपनी key set करें।";
+                        } else if (isQuota) {
+                            keyRejected = true;
+                            lastErr = "आज का free quota खत्म हो गया — Settings में अपनी API key डालें, या कल फिर try करें।";
+                            quotaExhausted = true;
                         } else if (retryable) {
                             lastErr = "Analysis engine अभी व्यस्त है (server busy) — कृपया कुछ क्षण बाद दोबारा प्रयास करें।";
                         } else if (response.status === 404) {
                             lastErr = "Analysis model उपलब्ध नहीं — अगला model प्रयास किया जा रहा है...";
-                        } else if (/quota|rate|limit/i.test(rawMsg) || response.status === 429) {
-                            lastErr = "Daily analysis limit पूरा हो गया — कृपया कुछ समय बाद प्रयास करें या अपनी API key सेट करें।";
                         } else {
                             lastErr = `Analysis engine error (code ${response.status})`;
                         }
@@ -1361,7 +1608,7 @@
                 // server busy / temporary failure => wait and try the same model again
                 if (retryable && attempt < 5) {
                     const waitMs = Math.min(20000, 3000 * Math.pow(1.8, attempt - 1));
-                    document.getElementById('loadingSubStatus').innerText = `Server व्यस्त है — ${Math.round(waitMs / 1000)} सेकंड बाद दोबारा कोशिश (${attempt + 1}/5)...`;
+                    document.getElementById('loadingSubStatus').innerText = `Server व्यस्त है — ${Math.round(waitMs / 1000)} seconds बाद दोबारा कोशिश (${attempt + 1}/5)...`;
                     await sleep(waitMs);
                     continue;
                 }
@@ -1375,7 +1622,7 @@
             const apiKey = getApiKey();
 
             if ((!uploadedPDFsText || uploadedPDFsText.trim().length === 0) && scannedPageImages.length === 0) {
-                showToast("कृपया पहले कम से कम एक विभागीय PDF दस्तावेज़ अपलोड करें।", "warning");
+                showToast("कृपया पहले कम से कम एक PDF upload करें।", "warning");
                 return;
             }
 
@@ -1461,9 +1708,9 @@ ${buildRandomPDFContext(8000)}`;
                     enterFocusMode(masterQuestionBank.length);
                     saveMemory();
                     scheduleBackgroundTopUp(1200);
-                    showToast(`${masterQuestionBank.length} प्रश्न तैयार — परीक्षा शुरू कर सकते हैं। बाकी प्रश्न पृष्ठभूमि में बनते रहेंगे।`, "success");
+                    showToast(`${masterQuestionBank.length} questions ready — Assessment start कर सकते हैं। बाकी questions background में बनते रहेंगे।`, "success");
                 } else {
-                    throw new Error("Analysis engine ने अमान्य प्रश्न-संरचना लौटाई।");
+                    throw new Error("Analysis engine ने अमान्य question structure लौटाया।");
                 }
             } catch (err) {
                 console.error(err);
@@ -1490,14 +1737,14 @@ ${buildRandomPDFContext(8000)}`;
         // Random cross-document sampling: excerpts are drawn from RANDOM positions across the
         // whole PDF (not page 1 first, then page 2), so topics come from anywhere in the document.
         let pdfChunkPointer = 0;
-        const PDF_CONTEXT_BUDGET = 16000;
+        const PDF_CONTEXT_BUDGET = 40000;
         const PDF_SLICE_COUNT = 8;
 
         let coverageBand = 0;   // walks across the document so no section is left out
 
         function buildRandomPDFContext(budgetOverride) {
             if (!uploadedPDFsText || uploadedPDFsText.trim().length === 0) {
-                return "(यह दस्तावेज़ scanned है — इसके पन्ने images के रूप में साथ भेजे गए हैं। उन्हें पढ़कर प्रश्न बनाएँ।)";
+                return "(यह PDF scanned है — इसके pages images के रूप में साथ भेजे गए हैं। उन्हें पढ़कर प्रश्न बनाएँ।)";
             }
             const budget = budgetOverride || PDF_CONTEXT_BUDGET;
             const total = uploadedPDFsText.length;
@@ -1531,6 +1778,32 @@ ${buildRandomPDFContext(8000)}`;
         // Set true when the PDF content is exhausted (no new unique questions possible)
         let pdfExhausted = false;
 
+        async function retryExhaustedDocument() {
+            if (!uploadedPDFsText && scannedPageImages.length === 0) {
+                showToast("इस PDF का text available नहीं — PDF दोबारा upload करें।", "warning");
+                return;
+            }
+            pdfExhausted = false;
+            quotaExhausted = false;
+            coverageBand = Math.floor(Math.random() * 50);   // start from a different part of the document
+            document.querySelectorAll('[onclick="appendMoreQuestionsFromPDF()"]').forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-45', 'cursor-not-allowed');
+                btn.title = "";
+            });
+            const doc = activeDoc();
+            if (doc) { doc.exhausted = false; persistLibrary(); renderLibrary(); }
+            showToast("दोबारा deep search हो रही है — कुछ और questions मिल सकते हैं।", "info");
+            const added = await appendMoreQuestionsFromPDF();
+            if (!added) showToast("इस बार कुछ नया नहीं मिला। कल फिर try करें या नई PDF जोड़ें।", "warning");
+            syncRetryButton();
+        }
+
+        function syncRetryButton() {
+            const btn = document.getElementById('retryExhaustedBtn');
+            if (btn) btn.classList.toggle('hidden', !pdfExhausted);
+        }
+
         function markPDFExhausted() {
             pdfExhausted = true;
             document.querySelectorAll('[onclick="appendMoreQuestionsFromPDF()"]').forEach(btn => {
@@ -1538,6 +1811,7 @@ ${buildRandomPDFContext(8000)}`;
                 btn.classList.add('opacity-45', 'cursor-not-allowed');
                 btn.title = "इस PDF से और नए प्रश्न नहीं बन सकते";
             });
+            syncRetryButton();
         }
 
         // While the user is taking the assessment, quietly build the next questions
@@ -1556,21 +1830,21 @@ ${buildRandomPDFContext(8000)}`;
         }
 
         async function runBackgroundTopUp() {
-            if (bgGenerating || pdfExhausted || !navigator.onLine) return;
+            if (bgGenerating || pdfExhausted || quotaExhausted || !navigator.onLine) return;
             if (!uploadedPDFsText && scannedPageImages.length === 0) return;
 
             bgGenerating = true;
             const badges = [document.getElementById('bgStatus'), document.getElementById('readyBgStatus')].filter(Boolean);
             badges.forEach(b => {
                 b.classList.remove('hidden');
-                b.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> नए प्रश्न बन रहे हैं… (अब तक कुल ${masterQuestionBank.length}, अनपूछे ${unaskedCount()})`;
+                b.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> नए questions बन रहे हैं… (अब तक total ${masterQuestionBank.length}, बाकी ${unaskedCount()})`;
             });
             const badge = badges[0];
             try {
                 const added = await appendMoreQuestionsFromPDF(true);
                 badges.forEach(b => {
                     if (added > 0) {
-                        b.innerHTML = `<i class="fa-solid fa-circle-check"></i> +${added} नए प्रश्न — कुल ${masterQuestionBank.length}, अगले सेट के लिए तैयार ${unaskedCount()}`;
+                        b.innerHTML = `<i class="fa-solid fa-circle-check"></i> +${added} new questions — total ${masterQuestionBank.length}, अगले set के लिए ready ${unaskedCount()}`;
                         setTimeout(() => b.classList.add('hidden'), 5000);
                     } else {
                         b.classList.add('hidden');
@@ -1579,8 +1853,8 @@ ${buildRandomPDFContext(8000)}`;
                 syncStartButton();
                 const pool = document.getElementById('remainingPoolInfo');
                 if (pool) pool.innerText = pdfExhausted
-                    ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedCount()} (इस PDF का पूरा content पढ़ा जा चुका है)`
-                    : `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedCount()} • और प्रश्न बन रहे हैं…`;
+                    ? `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedCount()} (इस PDF का पूरा content पढ़ा जा चुका है)`
+                    : `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedCount()} • और questions बन रहे हैं…`;
                 if (!pdfExhausted) {
                     // continue until the PDF has nothing new left; slow down once the pool is deep
                     scheduleBackgroundTopUp(unaskedCount() < BG_TARGET_SPARE ? 6000 : 25000);
@@ -1596,12 +1870,12 @@ ${buildRandomPDFContext(8000)}`;
             const apiKey = getApiKey();
 
             if ((!uploadedPDFsText || uploadedPDFsText.trim().length === 0) && scannedPageImages.length === 0) {
-                showToast("कृपया पहले कम से कम एक विभागीय PDF दस्तावेज़ अपलोड करें।", "warning");
+                showToast("कृपया पहले कम से कम एक PDF upload करें।", "warning");
                 return;
             }
 
             if (pdfExhausted) {
-                if (!silent) showToast("इस PDF का पूरा content cover हो चुका है — इससे और नए प्रश्न नहीं बन सकते। नई PDF अपलोड करें।", "warning");
+                if (!silent) showToast("इस PDF का पूरा content cover हो चुका है — और नए questions नहीं बन सकते। नई PDF upload करें।", "warning");
                 return 0;
             }
 
@@ -1609,16 +1883,16 @@ ${buildRandomPDFContext(8000)}`;
             const existingList = masterQuestionBank
                 .map((q, i) => `${i + 1}. ${q.question}`)
                 .join("\n")
-                .substring(0, 12000);
+                .substring(0, 30000);
 
             const MAX_ATTEMPTS = 4;
             let addedTotal = 0;
 
-            if (!silent) showLoadingState("PDF को दोबारा पढ़कर नए unique प्रश्न बनाए जा रहे हैं...");
+            if (!silent) showLoadingState("PDF दोबारा पढ़कर नए unique questions बनाए जा रहे हैं...");
 
             try {
                 for (let attempt = 1; attempt <= MAX_ATTEMPTS && addedTotal === 0; attempt++) {
-                    if (!silent) document.getElementById('loadingSubStatus').innerText = `Attempt ${attempt} of ${MAX_ATTEMPTS} — नए प्रश्न खोजे जा रहे हैं...`;
+                    if (!silent) document.getElementById('loadingSubStatus').innerText = `Attempt ${attempt} of ${MAX_ATTEMPTS} — नए questions खोजे जा रहे हैं...`;
 
                     const prompt = `Act as an expert departmental examiner. Identify the department and subject from the document itself and set questions at official departmental exam standard.
 Analyze the document text thoroughly and construct up to 20 NEW, DISTINCT multiple choice questions (MCQs) STRICTLY from the document content below.
@@ -1712,11 +1986,11 @@ ${buildRandomPDFContext()}`;
 
                 if (addedTotal > 0) {
                     saveMemory();
-                    if (!silent) showToast(`${addedTotal} नए प्रश्न जोड़े गए! कुल बैंक: ${masterQuestionBank.length}`, "success");
+                    if (!silent) showToast(`${addedTotal} new questions जुड़े! Total bank: ${masterQuestionBank.length}`, "success");
                 } else {
                     markPDFExhausted();
                     saveMemory();
-                    if (!silent) showToast(`इस PDF से सभी संभावित प्रश्न (${masterQuestionBank.length}) बन चुके हैं — और नए unique प्रश्न नहीं बन सकते। अधिक प्रश्नों के लिए नई/बड़ी PDF अपलोड करें।`, "warning");
+                    if (!silent) showToast(`इस PDF से सभी possible questions (${masterQuestionBank.length}) बन चुके हैं — और नए unique questions नहीं बन सकते। ज़्यादा questions के लिए नई/बड़ी PDF upload करें।`, "warning");
                 }
                 return addedTotal;
             } catch (err) {
@@ -1751,7 +2025,7 @@ ${buildRandomPDFContext()}`;
 
         function startMistakesQuiz() {
             if (mistakeBank.length === 0) {
-                showToast("अभी कोई गलत प्रश्न सुरक्षित नहीं है।", "info");
+                showToast("अभी कोई Wrong questions saved नहीं है।", "info");
                 return;
             }
             quizMode = 'mistakes';
@@ -1793,9 +2067,9 @@ ${buildRandomPDFContext()}`;
                 usedQuestionIndices.clear();
                 unaskedIndices = getUnaskedQuestionIndices();
                 if (pdfExhausted) {
-                    showToast("इस PDF के सभी प्रश्न पूरे हो चुके हैं — अब वही प्रश्न दोहराए जाएँगे। नए प्रश्नों के लिए नई PDF अपलोड करें।", "warning");
+                    showToast("इस PDF के सभी questions पूरे हो चुके हैं — अब वही questions repeat होंगे। नए questions के लिए नई PDF upload करें।", "warning");
                 } else {
-                    showToast("मेमोरी बैंक के सभी प्रश्न पूरे हो गए! शुरुआत से दोहराया जा रहा है।", "warning");
+                    showToast("Memory bank के सभी questions पूरे हो गए! शुरुआत से repeat हो रहे हैं।", "warning");
                 }
             }
 
@@ -1834,7 +2108,7 @@ ${buildRandomPDFContext()}`;
                     : "font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded";
                 if (perQLeft <= 0) {
                     clearInterval(perQInterval);
-                    showToast("समय समाप्त — प्रश्न छोड़ा गया।", "warning");
+                    showToast("समय समाप्त — प्रश्न Skipped गया।", "warning");
                     skipQuestion();
                 }
             }, 1000);
@@ -1859,8 +2133,8 @@ ${buildRandomPDFContext()}`;
             const qData = currentQuizSet[currentQuestionIndex];
             if (!qData) return;
             const idx = bookmarks.findIndex(b => b.question === qData.question);
-            if (idx >= 0) { bookmarks.splice(idx, 1); showToast("Bookmark हटाया।", "info"); }
-            else { bookmarks.push(qData); showToast("प्रश्न bookmark हो गया।", "success"); }
+            if (idx >= 0) { bookmarks.splice(idx, 1); showToast("Bookmark हटा दिया।", "info"); }
+            else { bookmarks.push(qData); showToast("Question bookmark हो गया।", "success"); }
             saveSideStores();
             paintBookmarkState();
         }
@@ -2011,21 +2285,21 @@ ${buildRandomPDFContext()}`;
             const marksLine = document.getElementById('marksLine');
             marksLine.classList.remove('hidden');
             marksLine.innerHTML = settings.negMark
-                ? `प्राप्त अंक: <span class="text-lg">${marks.toFixed(2)}</span> / ${total} &nbsp;•&nbsp; सही ${score} × 1 = ${score}, गलत ${wrong} × (-${negLabel()}) = -${(wrong * settings.negMark).toFixed(2)}, छोड़े गए ${skipped} (0)`
-                : `प्राप्त अंक: <span class="text-lg">${score}</span> / ${total} (negative marking बंद है)`;
+                ? `Score: <span class="text-lg">${marks.toFixed(2)}</span> / ${total} &nbsp;•&nbsp; Correct ${score} × 1 = ${score}, Wrong ${wrong} × (-${negLabel()}) = -${(wrong * settings.negMark).toFixed(2)}, Skipped ${skipped} (0)`
+                : `Score: <span class="text-lg">${score}</span> / ${total} (negative marking Off है)`;
 
             // review of this set
             const review = document.getElementById('reviewBlock');
-            review.innerHTML = '<div class="text-sm font-bold text-slate-200 pt-2">इस सेट की समीक्षा</div>' +
+            review.innerHTML = '<div class="text-sm font-bold text-slate-200 pt-2">इस Set का Review</div>' +
                 currentSetLog.map((r, i) => {
                     const badge = r.skipped
-                        ? '<span class="text-amber-300">छोड़ा</span>'
-                        : (r.isCorrect ? '<span class="text-green-400">सही</span>' : '<span class="text-red-400">गलत</span>');
+                        ? '<span class="text-amber-300">Skipped</span>'
+                        : (r.isCorrect ? '<span class="text-green-400">Correct</span>' : '<span class="text-red-400">Wrong</span>');
                     const yours = r.selectedIndex >= 0 ? cleanMath(r.q.options[r.selectedIndex]) : '—';
                     return `<div class="bg-slate-900/70 border border-slate-700 rounded-lg p-3 text-xs space-y-1">
                         <div class="font-semibold text-slate-200">Q${i + 1}. ${cleanMath(r.q.question)} &nbsp; ${badge}</div>
-                        <div class="text-slate-400">आपका उत्तर: ${yours}</div>
-                        <div class="text-green-300">सही उत्तर: ${cleanMath(r.q.options[r.q.correctIndex])}</div>
+                        <div class="text-slate-400">आपका Answer: ${yours}</div>
+                        <div class="text-green-300">Correct Answer: ${cleanMath(r.q.options[r.q.correctIndex])}</div>
                     </div>`;
                 }).join('');
 
@@ -2041,10 +2315,11 @@ ${buildRandomPDFContext()}`;
                 const when = d.toLocaleDateString('en-IN') + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
                 return `<tr class="border-t border-slate-700"><td class="py-1.5 pr-3 text-slate-400">${when}</td><td class="py-1.5 pr-3">${x.correct}/${x.total}</td><td class="py-1.5 text-amber-300">${x.accuracy}%</td></tr>`;
             }).join('');
-            hb.innerHTML = `<div class="text-sm font-bold text-slate-200 pt-4 pb-1">पिछली परीक्षाएँ</div>
+            hb.innerHTML = `<div class="text-sm font-bold text-slate-200 pt-4 pb-1">पिछले Attempts</div>
                 <table class="w-full text-xs"><tbody>${rows}</tbody></table>`;
 
             pushScreenState('result');
+            syncRetryButton();
             scheduleBackgroundTopUp(2000);
             const mb = document.getElementById('mistakesBtn');
             if (mistakeBank.length > 0) {
@@ -2061,10 +2336,10 @@ ${buildRandomPDFContext()}`;
 
             const unaskedRemaining = masterQuestionBank.length - usedQuestionIndices.size;
             const poolLine = pdfExhausted
-                ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining} (इस PDF का पूरा content पढ़ा जा चुका है)`
+                ? `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedRemaining} (इस PDF का पूरा content पढ़ा जा चुका है)`
                 : (bgGenerating
-                    ? `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining} • PDF से और प्रश्न बन रहे हैं…`
-                    : `कुल प्रश्न बैंक: ${masterQuestionBank.length} — अगले सेट के लिए तैयार: ${unaskedRemaining}`);
+                    ? `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedRemaining} • PDF से और questions बन रहे हैं…`
+                    : `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedRemaining}`);
             document.getElementById('remainingPoolInfo').innerText = poolLine;
             updateBankCounts();
         }
@@ -2140,7 +2415,7 @@ ${buildRandomPDFContext()}`;
                         <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #cbd5e1; font-size:12.5px; color:#334155;">
                             <div style="font-weight:700; margin-bottom:4px;">Technical Rationale:</div>
                             ${plainExplanation}
-                            ${item.source ? `<div style="margin-top:6px; font-size:11.5px; color:#64748b;">स्रोत: ${cleanMath(item.source)}</div>` : ''}
+                            ${item.source ? `<div style="margin-top:6px; font-size:11.5px; color:#64748b;">Source: ${cleanMath(item.source)}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -2326,13 +2601,13 @@ ${buildRandomPDFContext()}`;
             const correctOpt = cleanMath(qData.options[qData.correctIndex]);
             let rows = `<div class="flex items-start gap-2 p-2.5 rounded-lg bg-green-500/10 border border-green-500/30">
                     <i class="fa-solid fa-circle-check text-green-400 mt-0.5"></i>
-                    <div><div class="text-[10px] uppercase tracking-wider text-green-400 font-bold">सही उत्तर</div>
+                    <div><div class="text-[10px] uppercase tracking-wider text-green-400 font-bold">Correct Answer</div>
                     <div class="text-sm text-green-200 font-semibold">${correctOpt}</div></div>
                 </div>`;
             if (!isCorrect && typeof selectedIndex === 'number' && selectedIndex >= 0) {
                 rows += `<div class="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/30">
                     <i class="fa-solid fa-circle-xmark text-red-400 mt-0.5"></i>
-                    <div><div class="text-[10px] uppercase tracking-wider text-red-400 font-bold">आपका उत्तर</div>
+                    <div><div class="text-[10px] uppercase tracking-wider text-red-400 font-bold">आपका Answer</div>
                     <div class="text-sm text-red-200 font-semibold">${cleanMath(qData.options[selectedIndex])}</div></div>
                 </div>`;
             }
@@ -2340,7 +2615,7 @@ ${buildRandomPDFContext()}`;
 
             pushScreenState('evalModal');
             expText.innerHTML = formatExplanation(qData.explanation) +
-                (qData.source ? `<div class="mt-3 pt-2 border-t border-slate-700 text-xs text-slate-400"><i class="fa-solid fa-book-open mr-1"></i> स्रोत: ${cleanMath(qData.source)}</div>` : '');
+                (qData.source ? `<div class="mt-3 pt-2 border-t border-slate-700 text-xs text-slate-400"><i class="fa-solid fa-book-open mr-1"></i> Source: ${cleanMath(qData.source)}</div>` : '');
             modal.classList.remove('hidden');
         }
 
@@ -2407,7 +2682,7 @@ ${buildRandomPDFContext()}`;
             deferredInstallPrompt = null;
             const btn = document.getElementById('installAppBtn');
             if (btn) btn.classList.add('hidden');
-            showToast("App होम स्क्रीन पर इंस्टॉल हो गया।", "success");
+            showToast("App home screen पर install हो गया।", "success");
         });
 
         async function triggerInstall() {
@@ -2416,7 +2691,7 @@ ${buildRandomPDFContext()}`;
                 const choice = await deferredInstallPrompt.userChoice;
                 deferredInstallPrompt = null;
                 if (choice && choice.outcome === 'accepted') {
-                    showToast("App इंस्टॉल हो रहा है...", "success");
+                    showToast("App install हो रहा है...", "success");
                 }
                 return;
             }
@@ -2443,6 +2718,7 @@ ${buildRandomPDFContext()}`;
         window.onload = function() {
             loadSettings();
             loadSideStores();
+            loadLibrary();
             initBackHandling();
             paintBackButton();
             updateBankCounts();

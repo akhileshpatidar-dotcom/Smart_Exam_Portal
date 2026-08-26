@@ -278,9 +278,13 @@
             </div>
 
             <div class="border-t border-slate-700 pt-3 space-y-2">
-                <label class="text-xs font-semibold text-slate-300">API Key (सिर्फ़ इस device में save)</label>
-                <input id="apiKeyInput" type="password" placeholder="अपनी key paste करें (खाली = built-in)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
-                <button onclick="saveApiKeyFromInput()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-sm">Save Key</button>
+                <label class="text-xs font-semibold text-emerald-400">FREE Key — पहले यही use होगी (billing वाले project की नहीं)</label>
+                <input id="freeKeyInput" type="password" placeholder="built-in free key लगी है — बदलनी हो तो paste करें" class="w-full bg-slate-900 border border-emerald-700 rounded-lg px-3 py-2 text-sm text-slate-100">
+                <p id="freeKeyStatus" class="text-[11px] text-slate-400"></p>
+                <label class="text-xs font-semibold text-amber-400">PAID Key — free limit खत्म होने पर ही चलेगी</label>
+                <input id="apiKeyInput" type="password" placeholder="paid (billing) key paste करें" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200">
+                <button onclick="saveApiKeyFromInput()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2 rounded-lg text-sm">दोनों Keys Save करें</button>
+                <button onclick="resetFreeQuotaFlag()" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold py-2 rounded-lg text-xs">Free key दोबारा try करें (flag reset)</button>
             </div>
 
             <div id="storageInfo" class="text-[11px] text-slate-400 border-t border-slate-700 pt-3"></div>
@@ -546,13 +550,45 @@
             try { return atob(KEY_PARTS.join('')); } catch (e) { return ""; }
         }
 
-        // A user can save their own key from the Settings dialog; it overrides the built-in one.
+        // Two keys: a FREE-tier key (project without billing) is always tried first;
+        // the PAID key is only used after the free one hits its daily quota.
+        const FREE_KEY_PARTS = ["AQ.Ab8RN6K-NmVF5eLH", "djHCFFNtdWEd1QtVCtp", "OgV2q5H0Vncslgw"];
+        function builtInFreeKey() { return FREE_KEY_PARTS.join(''); }
+        function getFreeKey() { return (localStorage.getItem('examPortalFreeKey') || '').trim() || builtInFreeKey(); }
+        function getPaidKey() {
+            return (localStorage.getItem('examPortalPaidKey') || '').trim()
+                || (localStorage.getItem('examPortalApiKey') || '').trim()
+                || builtInKey();
+        }
+        // Free-tier limits are per-minute, not per-day: after a 429 we park the free key
+        // for a short cooldown, run on the paid key meanwhile, then return to free.
+        const FREE_COOLDOWN_MS = 70000;
+        function freeCooldownLeft() {
+            const until = parseInt(localStorage.getItem('examPortalFreeCooldown') || '0', 10);
+            return Math.max(0, until - Date.now());
+        }
+        function isFreeExhaustedToday() { return freeCooldownLeft() > 0; }
+        function markFreeExhausted() {
+            localStorage.setItem('examPortalFreeCooldown', String(Date.now() + FREE_COOLDOWN_MS));
+        }
+
+        // Order in which keys are attempted for a single request.
+        function getKeyChain() {
+            const free = getFreeKey(), paid = getPaidKey();
+            const chain = [];
+            if (free && !isFreeExhaustedToday()) chain.push({ key: free, kind: 'free' });
+            if (paid) chain.push({ key: paid, kind: 'paid' });
+            if (free && isFreeExhaustedToday() && !chain.length) chain.push({ key: free, kind: 'free' });
+            return chain;
+        }
+
         function getApiKey() {
-            return (localStorage.getItem('examPortalApiKey') || '').trim() || builtInKey();
+            const c = getKeyChain();
+            return c.length ? c[0].key : '';
         }
 
         function openApiKeyDialog() {
-            const current = localStorage.getItem('examPortalApiKey') || '';
+            const current = getPaidKey() === builtInKey() ? '' : getPaidKey();
             const entered = window.prompt(
                 "अपनी free API key यहाँ paste करें।\n\n" +
                 "कहाँ से लें: aistudio.google.com/apikey पर Google account से लॉगिन करें > 'Create API key' > key copy करें।\n\n" +
@@ -560,10 +596,10 @@
             if (entered === null) return;
             const clean = entered.trim();
             if (clean) {
-                localStorage.setItem('examPortalApiKey', clean);
+                localStorage.setItem('examPortalPaidKey', clean);
                 showToast("आपकी API key सुरक्षित रूप से इस डिवाइस में सेव हो गई।", "success");
             } else {
-                localStorage.removeItem('examPortalApiKey');
+                localStorage.removeItem('examPortalPaidKey');
                 showToast("अब built-in key use होगी।", "info");
             }
         }
@@ -910,7 +946,9 @@
             document.getElementById('negMarkSelect').value = String(settings.negMark);
             document.getElementById('perQTimeSelect').value = String(settings.perQTime);
             document.getElementById('fontScaleRange').value = settings.fontScale;
-            document.getElementById('apiKeyInput').value = localStorage.getItem('examPortalApiKey') || '';
+            document.getElementById('apiKeyInput').value = localStorage.getItem('examPortalPaidKey') || localStorage.getItem('examPortalApiKey') || '';
+            document.getElementById('freeKeyInput').value = localStorage.getItem('examPortalFreeKey') || '';
+            refreshKeyStatus();
             applySettings();
             showStorageInfo();
             document.getElementById('settingsModal').classList.remove('hidden');
@@ -944,16 +982,31 @@
         function toggleTheme() { settings.light = !settings.light; persistSettings(); applySettings(); }
         function toggleSound() { settings.sound = !settings.sound; persistSettings(); applySettings(); }
 
+        function refreshKeyStatus() {
+            const el = document.getElementById('freeKeyStatus');
+            if (!el) return;
+            const free = getFreeKey();
+            if (!free) el.innerText = "Free key set नहीं — अभी हर call paid key से जा रही है।";
+            else if (freeCooldownLeft() > 0) el.innerText = `Free limit भर गई — paid key चल रही है, ${Math.ceil(freeCooldownLeft()/1000)} sec में free पर वापस।`;
+            else el.innerText = "Free key active — पहले इसी से calls जाएंगी (built-in free key मौजूद है)।";
+        }
+
+        function resetFreeQuotaFlag() {
+            localStorage.removeItem('examPortalFreeCooldown');
+            quotaExhausted = false;
+            refreshKeyStatus();
+            showToast("अब फिर से free key से try होगा।", "success");
+        }
+
         function saveApiKeyFromInput() {
-            const v = (document.getElementById('apiKeyInput').value || '').trim();
-            if (v) {
-                localStorage.setItem('examPortalApiKey', v);
-                quotaExhausted = false;
-                showToast("आपकी API key इस device में save हो गई।", "success");
-            } else {
-                localStorage.removeItem('examPortalApiKey');
-                showToast("अब built-in key use होगी।", "info");
-            }
+            const paid = (document.getElementById('apiKeyInput').value || '').trim();
+            const free = (document.getElementById('freeKeyInput').value || '').trim();
+            if (paid) localStorage.setItem('examPortalPaidKey', paid); else localStorage.removeItem('examPortalPaidKey');
+            if (free) localStorage.setItem('examPortalFreeKey', free); else localStorage.removeItem('examPortalFreeKey');
+            localStorage.removeItem('examPortalApiKey');
+            quotaExhausted = false;
+            refreshKeyStatus();
+            showToast(free ? "Keys save हो गईं — पहले free key से calls जाएंगी।" : "Key save हो गई।", "success");
         }
 
         // ---------- FEEDBACK: SOUND + VIBRATION ----------
@@ -1544,18 +1597,22 @@
         let keyRejected = false;
         let quotaExhausted = false;
 
-        async function fetchGeminiQuiz(apiKey, prompt, images) {
+        async function fetchGeminiQuiz(_ignoredKey, prompt, images) {
             const models = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-3-flash-preview"];
             let lastErr = null;
             keyRejected = false;
 
-            if (!apiKey) {
+            const chain = getKeyChain();
+            if (!chain.length) {
                 throw new Error("कोई API key set नहीं है — Settings में अपनी key डालें।");
             }
 
             const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-            for (const model of models) {
+            for (const entry of chain) {
+              const apiKey = entry.key;
+              let switchKey = false;
+              for (const model of models) {
               for (let attempt = 1; attempt <= 5; attempt++) {
                 let retryable = false;
                 try {
@@ -1588,9 +1645,16 @@
                             keyRejected = true;
                             lastErr = "API key invalid या expire है — Settings में अपनी key set करें।";
                         } else if (isQuota) {
-                            keyRejected = true;
-                            lastErr = "आज का free quota खत्म हो गया — Settings में अपनी API key डालें, या कल फिर try करें।";
-                            quotaExhausted = true;
+                            if (entry.kind === 'free') {
+                                markFreeExhausted();
+                                keyRejected = false;
+                                lastErr = "Free limit भर गई — अब paid key से चल रहा है, थोड़ी देर में फिर free पर लौट जाएगा।";
+                                switchKey = true;
+                            } else {
+                                keyRejected = true;
+                                lastErr = "आज का quota खत्म हो गया — कृपया कल फिर try करें या billing जाँचें।";
+                                quotaExhausted = true;
+                            }
                         } else if (retryable) {
                             lastErr = "Analysis engine अभी व्यस्त है (server busy) — कृपया कुछ क्षण बाद दोबारा प्रयास करें।";
                         } else if (response.status === 404) {
@@ -1603,6 +1667,8 @@
                     lastErr = "Analysis engine से संपर्क नहीं हो सका — कृपया internet जाँचें।";
                 }
 
+                if (switchKey) break;
+
                 // server busy / temporary failure => wait and try the same model again
                 if (retryable && attempt < 5) {
                     const waitMs = Math.min(20000, 3000 * Math.pow(1.8, attempt - 1));
@@ -1612,6 +1678,13 @@
                 }
                 break;
               }
+              if (switchKey) break;
+              }
+              if (switchKey) {
+                  document.getElementById('loadingSubStatus').innerText = "Free limit भर गई — paid key से जारी...";
+                  continue;
+              }
+              break;
             }
             throw new Error(lastErr || "Analysis engine connection failed. कृपया internet जाँच कर दोबारा प्रयास करें।");
         }

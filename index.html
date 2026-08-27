@@ -361,8 +361,11 @@
                     <button id="generateMoreBtn" onclick="appendMoreQuestionsFromPDF()" class="hidden w-full sm:w-auto bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-semibold px-5 py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Generate More Questions
                     </button>
-                    <button onclick="startQuiz()" class="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white font-bold px-8 py-3.5 rounded-xl text-base flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 transition">
-                        <i class="fa-solid fa-play"></i> Start Assessment (<span id="startBtnCount">10</span> Questions)
+                    <button id="continueAssessmentBtn" onclick="startQuiz(true)" class="hidden w-full sm:w-auto bg-sky-600 hover:bg-sky-500 text-white font-bold px-5 py-3.5 rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-sky-900/30 transition whitespace-nowrap">
+                        <i class="fa-solid fa-forward"></i> Continue (<span id="continueBtnCount">0</span> बाकी)
+                    </button>
+                    <button onclick="startQuiz(false)" class="w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white font-bold px-6 py-3.5 rounded-xl text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-green-900/30 transition whitespace-nowrap">
+                        <i class="fa-solid fa-play"></i> Start New (<span id="startBtnCount">10</span> Questions)
                     </button>
                 </div>
                 <button id="newPdfBtn" onclick="showUploadCard()" class="hidden text-xs text-slate-400 hover:text-amber-300 underline decoration-dotted">नई PDF अपलोड करें</button>
@@ -1399,6 +1402,18 @@
             if (el) el.innerText = Math.min(settings.setSize || 10, masterQuestionBank.length) || 0;
             const rc = document.getElementById('readyCount');
             if (rc) rc.innerText = masterQuestionBank.length;
+
+            const remaining = masterQuestionBank.length - usedQuestionIndices.size;
+            const contBtn = document.getElementById('continueAssessmentBtn');
+            const contCount = document.getElementById('continueBtnCount');
+            if (contBtn) {
+                if (usedQuestionIndices.size > 0 && remaining > 0) {
+                    contBtn.classList.remove('hidden');
+                    if (contCount) contCount.innerText = remaining;
+                } else {
+                    contBtn.classList.add('hidden');
+                }
+            }
         }
 
         function exitFocusMode() {

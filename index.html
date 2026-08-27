@@ -389,6 +389,7 @@
                     <div class="text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Score: <span id="scoreText">0</span></div>
                     <button onclick="toggleBookmark()" id="bookmarkBtn" title="Bookmark (B)" class="text-slate-400 hover:text-amber-300 px-2 py-1 rounded-lg border border-slate-700"><i class="fa-regular fa-star"></i></button>
                     <span id="bgStatus" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded"></span>
+                    <button id="bgPauseToggleBtnQuiz" onclick="toggleBgPause()" class="text-[11px] font-semibold px-2 py-1 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700"></button>
                     <button onclick="skipQuestion()" title="Skip (S)" class="text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs">Skip</button>
                 </div>
             </div>
@@ -2143,15 +2144,17 @@ ${buildRandomPDFContext(8000)}`;
             }
         }
         function renderBgPauseButton() {
-            const btn = document.getElementById('bgPauseToggleBtn');
-            if (!btn) return;
-            if (isBgPaused()) {
-                btn.innerHTML = '<i class="fa-solid fa-play"></i> नए Questions Resume करें';
-                btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-amber-500 text-amber-300 bg-amber-500/10";
-            } else {
-                btn.innerHTML = '<i class="fa-solid fa-pause"></i> नए Questions Pause करें';
-                btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700";
-            }
+            const paused = isBgPaused();
+            [document.getElementById('bgPauseToggleBtn'), document.getElementById('bgPauseToggleBtnQuiz')].forEach(btn => {
+                if (!btn) return;
+                if (paused) {
+                    btn.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+                    btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-amber-500 text-amber-300 bg-amber-500/10";
+                } else {
+                    btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+                    btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700";
+                }
+            });
         }
 
         function scheduleBackgroundTopUp(delayMs = 4000) {
@@ -2478,6 +2481,7 @@ ${buildRandomPDFContext()}`;
         }
 
         function loadQuestion() {
+            renderBgPauseButton();
             const qData = currentQuizSet[currentQuestionIndex];
             document.getElementById('currentQNum').innerText = `Q ${currentQuestionIndex + 1}/${currentQuizSet.length}`;
             document.getElementById('scoreText').innerText = settings.negMark

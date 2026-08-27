@@ -1,6 +1,6 @@
 // Smart Exam Portal — offline shell
 // HTML is network-first so a new upload is picked up immediately; assets are cache-first.
-const CACHE = 'exam-portal-v3';
+const CACHE = 'exam-portal-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

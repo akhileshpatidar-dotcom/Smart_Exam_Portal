@@ -120,6 +120,22 @@
             header { padding-top: env(safe-area-inset-top); }
         }
     </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+        const firebaseConfig = {
+            apiKey: "AIzaSyCrPYX2Ih_q_ss_9mlAf4xpBWIYMWUPr9E",
+            authDomain: "smart-exam-portal-1fbeb.firebaseapp.com",
+            projectId: "smart-exam-portal-1fbeb",
+            storageBucket: "smart-exam-portal-1fbeb.firebasestorage.app",
+            messagingSenderId: "1037193595594",
+            appId: "1:1037193595594:web:b8918d230b170cfe870233",
+            measurementId: "G-R1PFSHF2Y1"
+        };
+        const fbApp = initializeApp(firebaseConfig);
+        const fbAnalytics = getAnalytics(fbApp);
+        window.trackEvent = (name, params) => { try { logEvent(fbAnalytics, name, params || {}); } catch (e) {} };
+    </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
@@ -1522,6 +1538,7 @@
 
         async function processFiles(files) {
             const fileListContainer = document.getElementById('fileList');
+            if (window.trackEvent) trackEvent('pdf_upload', { count: files.length });
 
             // the moment the user brings their own document, the demo set is dropped
             // a fresh upload starts its own document; saved ones stay in the library
@@ -2311,6 +2328,7 @@ ${buildRandomPDFContext()}`;
                     if (freshOnes.length > 0) {
                         masterQuestionBank.push(...freshOnes);
                         addedTotal += freshOnes.length;
+                        if (window.trackEvent) trackEvent('questions_generated', { count: freshOnes.length });
                     }
                 }
 
@@ -2386,12 +2404,16 @@ ${buildRandomPDFContext()}`;
             loadQuestion();
         }
 
-        function startQuiz() {
+        function startQuiz(continueMode) {
             quizMode = 'normal';
             if (masterQuestionBank.length === 0) {
                 showToast("कोई प्रश्न उपलब्ध नहीं — कृपया पहले PDF अपलोड करें या दोबारा विश्लेषण करें।", "warning");
                 showUploadCard();
                 return;
+            }
+
+            if (!continueMode) {
+                usedQuestionIndices.clear();
             }
 
             let unaskedIndices = getUnaskedQuestionIndices();
@@ -2642,6 +2664,7 @@ ${buildRandomPDFContext()}`;
             try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch (e) {}
             hist.push({ at: new Date().toISOString(), total, correct: score, wrong, skipped, accuracy, marks });
             try { localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(-30))); } catch (e) {}
+            if (window.trackEvent) trackEvent('quiz_finished', { total, correct: score, wrong, skipped, accuracy });
 
             const hb = document.getElementById('historyBlock');
             const rows = hist.slice(-6).reverse().map(x => {

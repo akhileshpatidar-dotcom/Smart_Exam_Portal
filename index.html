@@ -450,8 +450,9 @@
 
                 <div id="marksLine" class="hidden text-sm font-semibold text-amber-300"></div>
 
-                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 max-w-lg mx-auto text-xs text-slate-300">
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-700 max-w-lg mx-auto text-xs text-slate-300 flex items-center justify-between gap-3">
                     <span id="remainingPoolInfo">Memory Bank Status: 0 Unasked Questions Remaining</span>
+                    <button id="bgPauseToggleBtn" onclick="toggleBgPause()" class="shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition"></button>
                 </div>
 
                 <div id="reviewBlock" class="max-w-2xl mx-auto text-left space-y-2"></div>
@@ -1322,6 +1323,7 @@
             usedQuestionIndices = new Set(doc.used || []);
             pdfExhausted = !!doc.exhausted;
             scannedPageImages = [];
+            renderBgPauseButton();
             usingDemoBank = false;
             coverageBand = 0;
             pdfFileList = [];
@@ -2117,13 +2119,48 @@ ${buildRandomPDFContext(8000)}`;
             return masterQuestionBank.length - usedQuestionIndices.size;
         }
 
+        // Per-document pause flag: once set it survives reload/re-open (saved on the doc)
+        // and background generation stays off until the user explicitly resumes it.
+        function isBgPaused() {
+            const doc = activeDoc();
+            return !!(doc && doc.bgPaused);
+        }
+        function toggleBgPause() {
+            let doc = activeDoc();
+            if (!doc) { saveMemory(); doc = activeDoc(); }
+            if (!doc) return;
+            doc.bgPaused = !doc.bgPaused;
+            persistLibrary();
+            renderBgPauseButton();
+            if (!doc.bgPaused) {
+                showToast("नए questions बनना फिर शुरू।", "success");
+                scheduleBackgroundTopUp(1000);
+            } else {
+                clearTimeout(bgTimer);
+                showToast("नए questions बनना रुक गया — जब तक आप दोबारा शुरू न करें, यह pause ही रहेगा।", "info");
+                const badges = [document.getElementById('bgStatus'), document.getElementById('readyBgStatus')].filter(Boolean);
+                badges.forEach(b => b.classList.add('hidden'));
+            }
+        }
+        function renderBgPauseButton() {
+            const btn = document.getElementById('bgPauseToggleBtn');
+            if (!btn) return;
+            if (isBgPaused()) {
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> नए Questions Resume करें';
+                btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-amber-500 text-amber-300 bg-amber-500/10";
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> नए Questions Pause करें';
+                btn.className = "shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700";
+            }
+        }
+
         function scheduleBackgroundTopUp(delayMs = 4000) {
             clearTimeout(bgTimer);
             bgTimer = setTimeout(runBackgroundTopUp, delayMs);
         }
 
         async function runBackgroundTopUp() {
-            if (bgGenerating || pdfExhausted || quotaExhausted || !navigator.onLine) return;
+            if (bgGenerating || pdfExhausted || quotaExhausted || !navigator.onLine || isBgPaused()) return;
             if (!uploadedPDFsText && scannedPageImages.length === 0) return;
 
             bgGenerating = true;
@@ -2613,6 +2650,7 @@ ${buildRandomPDFContext()}`;
 
             pushScreenState('result');
             syncRetryButton();
+            renderBgPauseButton();
             scheduleBackgroundTopUp(2000);
             const mb = document.getElementById('mistakesBtn');
             if (mistakeBank.length > 0) {

@@ -100,16 +100,21 @@
         }
 
         /* ---------- LIGHT THEME ---------- */
-        body.light { background: #f4f5f7 !important; color: #14213d !important; }
+        body.light { background: #f7f8fa !important; color: #1a2233 !important; }
         body.light .bg-slate-900, body.light .bg-slate-800, body.light .bg-slate-800\/80,
         body.light .bg-slate-800\/60, body.light .bg-slate-900\/60, body.light .bg-slate-900\/70,
         body.light .bg-slate-900\/80, body.light .bg-slate-800\/50, body.light .bg-slate-900\/40 { background-color: #ffffff !important; }
-        body.light header { background-color: #ffffff !important; }
-        body.light .text-slate-100, body.light .text-slate-200, body.light .text-slate-300 { color: #14213d !important; }
-        body.light .text-slate-400, body.light .text-slate-500 { color: #5b6472 !important; }
-        body.light .border-slate-700, body.light .border-slate-600, body.light .border-slate-800 { border-color: #d7dbe2 !important; }
+        body.light header { background-color: #ffffff !important; box-shadow: 0 1px 3px rgba(20,33,61,0.06) !important; }
+        body.light .text-slate-100, body.light .text-slate-200, body.light .text-slate-300 { color: #1a2233 !important; }
+        body.light .text-slate-400, body.light .text-slate-500 { color: #64748a !important; }
+        body.light .border-slate-700, body.light .border-slate-600, body.light .border-slate-800 { border-color: #e2e5eb !important; }
         body.light .text-amber-400, body.light .text-amber-300 { color: #b45309 !important; }
-        body.light #offlineBanner { color: #14213d !important; }
+        body.light #offlineBanner { color: #1a2233 !important; }
+        body.light input, body.light select, body.light textarea { background-color: #ffffff !important; color: #1a2233 !important; }
+        body.light .shadow-lg, body.light .shadow-md { box-shadow: 0 2px 10px rgba(20,33,61,0.06) !important; }
+        body.light #themeIconBtn i.fa-sun { display: none; }
+        body.light #themeIconBtn i.fa-moon { display: inline; }
+        #themeIconBtn i.fa-moon { display: none; }
 
         /* answer feedback pulse */
         @keyframes answerPulse { 0% { transform: scale(1); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
@@ -173,6 +178,10 @@
 
                 <button id="installAppBtn" onclick="triggerInstall()" class="text-xs bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-md">
                     <i class="fa-solid fa-download"></i> Install App
+                </button>
+
+                <button id="themeIconBtn" onclick="toggleTheme()" class="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-700/80 hover:bg-slate-600 text-slate-200 border border-slate-600 transition" title="Theme बदलें">
+                    <i class="fa-solid fa-sun"></i><i class="fa-solid fa-moon"></i>
                 </button>
 
                 <button onclick="openSettings()" class="text-xs bg-slate-700/80 hover:bg-slate-600 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition border border-slate-600" title="Settings">
@@ -311,6 +320,10 @@
                 <input type="file" id="bankImportInput" accept=".json" class="hidden" onchange="importQuestionBank(event)">
             </div>
 
+            <div class="border-t-2 border-red-900/60 pt-3 mt-2">
+                <button id="resetSystemBtn" onclick="confirmResetSystem()" class="w-full bg-red-950/40 hover:bg-red-900/50 text-red-400 border border-red-800 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> Reset System (सभी PDF + Questions मिट जाएंगे)</button>
+            </div>
+
             <button onclick="closeSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg text-sm">Off करें</button>
         </div>
     </div>
@@ -406,7 +419,8 @@
                     <button onclick="toggleBookmark()" id="bookmarkBtn" title="Bookmark (B)" class="text-slate-400 hover:text-amber-300 px-2 py-1 rounded-lg border border-slate-700"><i class="fa-regular fa-star"></i></button>
                     <span id="bgStatus" class="hidden text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded"></span>
                     <button id="bgPauseToggleBtnQuiz" onclick="toggleBgPause()" class="text-[11px] font-semibold px-2 py-1 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700"></button>
-                    <button onclick="skipQuestion()" title="Skip (S)" class="text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs">Skip</button>
+                    <button id="prevQuestionBtn" onclick="prevQuestion()" title="Previous" class="hidden text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs"><i class="fa-solid fa-arrow-left"></i> Previous</button>
+                    <button onclick="skipQuestion()" id="skipQuestionBtn" title="Skip (S)" class="text-slate-400 hover:text-slate-100 px-2 py-1 rounded-lg border border-slate-700 text-xs">Skip</button>
                 </div>
             </div>
 
@@ -424,6 +438,7 @@
                 <div id="optionsContainer" class="grid grid-cols-1 gap-3">
                     <!-- Options injected dynamically -->
                 </div>
+                <div id="reviewInline" class="hidden p-3 rounded-lg bg-slate-900/70 border border-slate-700 text-xs text-slate-300 space-y-1"></div>
             </div>
 
             <!-- Next / Controls -->
@@ -679,6 +694,7 @@
         // USER ATTEMPTED QUESTIONS TRACKER (FOR EXPORTING COMPLETE ATTEMPTED PDF)
         let attemptedQuestionsLog = [];
         let currentSetLog = [];          // review data for the running set
+        let answeredMap = {};            // index -> {selectedIndex, isCorrect, skipped} — lets you revisit without re-scoring
         let bookmarks = [];              // bookmarked questions (persisted)
         let mistakeBank = [];            // wrongly answered questions (persisted)
         let perQInterval = null;
@@ -1329,6 +1345,25 @@
             try { localStorage.removeItem(LIBRARY_KEY); localStorage.removeItem(MEMORY_KEY); } catch (e) {}
             library = [];
             activeDocId = null;
+        }
+
+        // Double-guarded: a confirm() plus a typed "RESET" so an accidental tap can't wipe uploaded PDFs/questions.
+        function confirmResetSystem() {
+            const ok = window.confirm("जो भी PDF और उनके questions save हैं, वह सब ही hamesha के लिे delete हो जाएंगे। कॏनन्यू nahiं होगा। क्या आप सचजे हीं सबकुछ reset करना चाहते हैं?");
+            if (!ok) return;
+            const typed = window.prompt("थखन होने के लिे: नीचे बड़े अक्षरों में RESET लिखें।");
+            if ((typed || '').trim().toUpperCase() !== 'RESET') {
+                showToast("Reset रद्द कर दिया गया — कुछ बदला नहीं।", "info");
+                return;
+            }
+            clearMemory();
+            masterQuestionBank = [];
+            usedQuestionIndices.clear();
+            uploadedPDFsText = '';
+            showToast("सब डेटा reset हो गया।", "success");
+            closeSettings();
+            showUploadCard();
+            renderLibrary();
         }
 
         function openDocument(id) {
@@ -2389,6 +2424,7 @@ ${buildRandomPDFContext()}`;
             score = 0;
             wrongCount = 0;
             currentSetLog = [];
+            answeredMap = {};
             secondsElapsed = 0;
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
@@ -2475,6 +2511,7 @@ ${buildRandomPDFContext()}`;
             clearInterval(perQInterval);
             const qData = currentQuizSet[currentQuestionIndex];
             currentSetLog.push({ q: qData, selectedIndex: -1, isCorrect: false, skipped: true });
+            answeredMap[currentQuestionIndex] = { selectedIndex: -1, isCorrect: false, skipped: true };
             attemptedQuestionsLog.push({
                 attemptNum: attemptedQuestionsLog.length + 1,
                 question: qData.question, options: qData.options,
@@ -2516,22 +2553,67 @@ ${buildRandomPDFContext()}`;
             document.getElementById('questionTitle').innerText = cleanMath(qData.question);
             document.getElementById('nextQuestionBtn').classList.add('hidden');
 
+            const prevBtn = document.getElementById('prevQuestionBtn');
+            if (prevBtn) prevBtn.classList.toggle('hidden', currentQuestionIndex === 0);
+
             const container = document.getElementById('optionsContainer');
             container.innerHTML = '';
+            const reviewBox = document.getElementById('reviewInline');
+            const prior = answeredMap[currentQuestionIndex];
 
-            qData.options.forEach((optText, idx) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-xl bg-slate-900 hover:bg-slate-700/80 border border-slate-700 transition flex items-center justify-between text-slate-200 font-medium group";
-                btn.onclick = () => selectOption(idx);
-                btn.innerHTML = `
-                    <span class="option-btn-text">${cleanMath(optText)}</span>
-                    <i class="fa-regular fa-circle text-slate-500 group-hover:text-amber-400"></i>
-                `;
-                container.appendChild(btn);
-            });
+            if (prior) {
+                // already answered earlier — read-only review, no re-scoring, no timer
+                clearInterval(perQInterval);
+                const skipBtn = document.getElementById('skipQuestionBtn');
+                if (skipBtn) skipBtn.classList.add('hidden');
+                const timerEl = document.getElementById('perQTimer');
+                if (timerEl) timerEl.classList.add('hidden');
+
+                qData.options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.disabled = true;
+                    if (idx === qData.correctIndex) {
+                        btn.className = "w-full text-left p-4 rounded-xl bg-green-950/60 border-2 border-green-500 text-green-200 font-bold flex items-center justify-between";
+                        btn.innerHTML = `<span class="option-btn-text">${cleanMath(optText)}</span><i class="fa-solid fa-circle-check text-green-400 text-lg"></i>`;
+                    } else if (idx === prior.selectedIndex) {
+                        btn.className = "w-full text-left p-4 rounded-xl bg-red-950/60 border-2 border-red-500 text-red-200 font-bold flex items-center justify-between";
+                        btn.innerHTML = `<span class="option-btn-text">${cleanMath(optText)}</span><i class="fa-solid fa-circle-xmark text-red-400 text-lg"></i>`;
+                    } else {
+                        btn.className = "w-full text-left p-4 rounded-xl bg-slate-900/40 border border-slate-800 text-slate-500 opacity-60 flex items-center justify-between";
+                        btn.innerHTML = `<span class="option-btn-text">${cleanMath(optText)}</span>`;
+                    }
+                    container.appendChild(btn);
+                });
+
+                if (reviewBox) {
+                    reviewBox.classList.remove('hidden');
+                    const statusLine = prior.skipped
+                        ? '<span class="text-amber-300 font-semibold">आपने यह प्रश्न Skip किया था।</span>'
+                        : (prior.isCorrect
+                            ? '<span class="text-green-400 font-semibold">आपका उत्तर सही था।</span>'
+                            : '<span class="text-red-400 font-semibold">आपका उत्तर गलत था।</span>');
+                    reviewBox.innerHTML = `${statusLine}<div><b>सही उत्तर:</b> ${cleanMath(qData.options[qData.correctIndex])}</div><div class="text-slate-400">${qData.explanation || ''}</div>`;
+                }
+                document.getElementById('nextQuestionBtn').classList.remove('hidden');
+            } else {
+                const skipBtn = document.getElementById('skipQuestionBtn');
+                if (skipBtn) skipBtn.classList.remove('hidden');
+                if (reviewBox) reviewBox.classList.add('hidden');
+
+                qData.options.forEach((optText, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full text-left p-4 rounded-xl bg-slate-900 hover:bg-slate-700/80 border border-slate-700 transition flex items-center justify-between text-slate-200 font-medium group";
+                    btn.onclick = () => selectOption(idx);
+                    btn.innerHTML = `
+                        <span class="option-btn-text">${cleanMath(optText)}</span>
+                        <i class="fa-regular fa-circle text-slate-500 group-hover:text-amber-400"></i>
+                    `;
+                    container.appendChild(btn);
+                });
+                startPerQuestionTimer();
+            }
 
             paintBookmarkState();
-            startPerQuestionTimer();
         }
 
         function selectOption(selectedIndex) {
@@ -2543,6 +2625,7 @@ ${buildRandomPDFContext()}`;
             beep(isCorrect);
 
             currentSetLog.push({ q: qData, selectedIndex: selectedIndex, isCorrect: isCorrect, skipped: false });
+            answeredMap[currentQuestionIndex] = { selectedIndex: selectedIndex, isCorrect: isCorrect, skipped: false };
 
             if (!isCorrect && !mistakeBank.some(m => m.question === qData.question)) {
                 mistakeBank.push(qData);
@@ -2610,6 +2693,13 @@ ${buildRandomPDFContext()}`;
         function closeEvalModal() {
             document.getElementById('evalModal').classList.add('hidden');
             paintBackButton();
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
         }
 
         function nextQuestion() {

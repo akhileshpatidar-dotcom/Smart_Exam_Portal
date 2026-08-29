@@ -21,18 +21,23 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Hindi:ital@0;1&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+        @font-face {
+            font-family: 'Calibri';
+            src: url('fonts/Calibri.ttf') format('truetype');
+            font-weight: 400;
+        }
         body {
-            font-family: 'Poppins', 'Segoe UI', -apple-system, sans-serif;
+            font-family: 'Calibri', 'Segoe UI', -apple-system, sans-serif;
             letter-spacing: 0.01em;
         }
         .quiz-question-text {
-            font-family: 'Hind', 'Noto Sans Devanagari', sans-serif;
+            font-family: 'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
             font-size: 1.15rem;
             line-height: 1.6;
         }
         .option-btn-text {
-            font-family: 'Hind', 'Noto Sans Devanagari', sans-serif;
+            font-family: 'Tiro Devanagari Hindi', 'Noto Sans Devanagari', serif;
             font-size: 1rem;
             line-height: 1.5;
         }
@@ -115,6 +120,16 @@
         body.light #themeIconBtn i.fa-sun { display: none; }
         body.light #themeIconBtn i.fa-moon { display: inline; }
         #themeIconBtn i.fa-moon { display: none; }
+
+        body.light #optionsContainer button {
+            background-color: #ffffff !important;
+            border: 1.5px solid #cbd2dd !important;
+            box-shadow: 0 1px 4px rgba(20,33,61,0.05) !important;
+        }
+        body.light #optionsContainer button:hover:not(:disabled) {
+            border-color: #b45309 !important;
+            background-color: #fffaf0 !important;
+        }
 
         /* answer feedback pulse */
         @keyframes answerPulse { 0% { transform: scale(1); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }

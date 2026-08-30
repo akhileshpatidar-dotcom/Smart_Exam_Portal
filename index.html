@@ -18,6 +18,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- html2pdf.js for generating exact PDF reports with Devanagari Hindi font support -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -2921,33 +2923,63 @@ ${buildRandomPDFContext()}`;
             htmlContent += '</div>';
 
             const container = document.getElementById('pdfExportContainer');
-            // html2pdf cannot render a display:none element — move it off-screen instead
             container.classList.remove('hidden');
             container.style.position = 'fixed';
             container.style.left = '-10000px';
             container.style.top = '0';
+            container.style.width = '190mm';
             container.innerHTML = htmlContent;
 
             showLoadingState("Building PDF report...");
 
-            html2pdf().set({
-                margin: [10, 8, 12, 8],
-                filename: `Attempted_Questions_Report_${attemptedQuestionsLog.length}Qs.pdf`,
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak: { mode: ['css', 'legacy'] }
-            }).from(container.firstElementChild).save().then(() => {
-                hideLoadingState();
-                container.classList.add('hidden');
-                container.innerHTML = '';
-                showToast("PDF report downloaded successfully.", "success");
-            }).catch(err => {
-                hideLoadingState();
-                container.classList.add('hidden');
-                container.innerHTML = '';
-                showToast(`PDF generation failed: ${err.message}`, "error");
-            });
+            // Render each question block to its own canvas and paginate manually.
+            // A single giant canvas for all questions can silently exceed the browser's
+            // max canvas height and clip the last few entries — this avoids that entirely.
+            (async () => {
+                try {
+                    const wrapper = container.firstElementChild;
+                    const blocks = Array.from(wrapper.children);
+
+                    const JsPdfCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+                    const pdf = new JsPdfCtor({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                    const pageW = 210, pageH = 297, marginX = 8, marginTop = 10, marginBottom = 12;
+                    const usableW = pageW - marginX * 2;
+                    let y = marginTop;
+                    let isFirstPage = true;
+
+                    async function drawBlock(el) {
+                        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                        const imgH = (canvas.height * usableW) / canvas.width;
+                        if (y + imgH > pageH - marginBottom && !isFirstPage) {
+                            pdf.addPage();
+                            y = marginTop;
+                        } else if (y + imgH > pageH - marginBottom && isFirstPage) {
+                            pdf.addPage();
+                            y = marginTop;
+                        }
+                        pdf.addImage(imgData, 'JPEG', marginX, y, usableW, imgH);
+                        y += imgH + 4;
+                        isFirstPage = false;
+                    }
+
+                    await drawBlock(blocks[0]);
+                    for (let i = 1; i < blocks.length; i++) {
+                        await drawBlock(blocks[i]);
+                    }
+
+                    pdf.save(`Attempted_Questions_Report_${attemptedQuestionsLog.length}Qs.pdf`);
+                    hideLoadingState();
+                    container.classList.add('hidden');
+                    container.innerHTML = '';
+                    showToast("PDF report downloaded successfully.", "success");
+                } catch (err) {
+                    hideLoadingState();
+                    container.classList.add('hidden');
+                    container.innerHTML = '';
+                    showToast(`PDF generation failed: ${err.message}`, "error");
+                }
+            })();
         }
 
         // ---------- LEGACY HINDI FONT (Kruti Dev) -> UNICODE ----------

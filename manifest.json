@@ -1,5 +1,5 @@
 {
-  "name": "Smart Exam Portal",
+  "name": "Smart exam Portal (MCQ/Quiz only)",
   "short_name": "Exam Portal",
   "description": "PDF Analysis & Assessment System for All Departments",
   "start_url": "./index.html",

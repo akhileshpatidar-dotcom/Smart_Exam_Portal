@@ -740,6 +740,21 @@
                 && Number.isInteger(q.correctIndex) && q.correctIndex >= 0 && q.correctIndex <= 3;
         }
 
+        // Randomizes which position (A/B/C/D) holds the correct answer for a freshly
+        // generated question, then re-labels the option prefixes to match the new order.
+        function shuffleQuestionOptions(q) {
+            const labels = ['A', 'B', 'C', 'D'];
+            const bareOptions = q.options.map(o => String(o).replace(/^[A-D]\)\s*/, ''));
+            const order = [0, 1, 2, 3];
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
+            const newOptions = order.map((origIdx, pos) => `${labels[pos]}) ${bareOptions[origIdx]}`);
+            const newCorrectIndex = order.indexOf(q.correctIndex);
+            return Object.assign({}, q, { options: newOptions, correctIndex: newCorrectIndex });
+        }
+
         function loadSideStores() {
             try { mistakeBank = JSON.parse(localStorage.getItem(MISTAKES_KEY) || '[]'); } catch (e) { mistakeBank = []; }
             try { bookmarks = JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || '[]'); } catch (e) { bookmarks = []; }
@@ -2094,7 +2109,7 @@ ${buildRandomPDFContext(8000)}`;
                         if (seen.has(key)) return false;
                         seen.add(key);
                         return true;
-                    });
+                    }).map(shuffleQuestionOptions);
                     for (let i = masterQuestionBank.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [masterQuestionBank[i], masterQuestionBank[j]] = [masterQuestionBank[j], masterQuestionBank[i]];
@@ -2407,7 +2422,7 @@ ${buildRandomPDFContext()}`;
                         if (!isValidQuestion(q)) return;
                         if (isDuplicateQuestion(q.question)) return;
                         if (freshOnes.some(f => normalizeQuestion(f.question) === normalizeQuestion(q.question))) return;
-                        freshOnes.push(q);
+                        freshOnes.push(shuffleQuestionOptions(q));
                     });
 
                     if (freshOnes.length > 0) {

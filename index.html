@@ -1515,6 +1515,33 @@
             // open the most recently used document automatically
             const latest = library.slice().sort((a, b) => b.savedAt - a.savedAt)[0];
             openDocument(latest.id);
+
+            // resume an interrupted quiz exactly where it was left, if one exists
+            const progress = latest.quizProgress;
+            if (progress && Array.isArray(progress.bankIndices) && progress.bankIndices.length
+                && progress.index < progress.bankIndices.length
+                && progress.bankIndices.every(i => i >= 0 && i < masterQuestionBank.length)) {
+                currentQuizSet = progress.bankIndices.map(i => masterQuestionBank[i]);
+                currentQuestionIndex = progress.index;
+                score = progress.score || 0;
+                wrongCount = progress.wrongCount || 0;
+                answeredMap = progress.answeredMap || {};
+                secondsElapsed = progress.secondsElapsed || 0;
+                currentSetLog = Object.keys(answeredMap).map(k => parseInt(k, 10)).sort((a, b) => a - b)
+                    .map(k => ({ q: currentQuizSet[k], selectedIndex: answeredMap[k].selectedIndex, isCorrect: answeredMap[k].isCorrect, skipped: answeredMap[k].skipped }));
+                quizMode = 'normal';
+                clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    secondsElapsed++;
+                    const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+                    const secs = String(secondsElapsed % 60).padStart(2, '0');
+                    document.getElementById('timerText').innerText = `${mins}:${secs}`;
+                }, 1000);
+                switchTab('quiz');
+                pushScreenState('quiz');
+                loadQuestion();
+                showToast(`पिछला अधूरा Assessment resume हो गया — Q ${currentQuestionIndex + 1}/${currentQuizSet.length} से आगे।`, "success");
+            }
             return true;
         }
 
@@ -2147,9 +2174,17 @@ ${buildRandomPDFContext(8000)}`;
         function isDuplicateQuestion(q) {
             const key = normalizeQuestion(q);
             if (!key) return true;
+            const keyWords = new Set(key.split(' ').filter(w => w.length > 2));
             return masterQuestionBank.some(existing => {
                 const ek = normalizeQuestion(existing.question);
-                return ek === key || (ek.length > 25 && key.length > 25 && (ek.includes(key) || key.includes(ek)));
+                if (ek === key || (ek.length > 25 && key.length > 25 && (ek.includes(key) || key.includes(ek)))) return true;
+                // fuzzy check: AI often rephrases the same question slightly — catch that via word overlap
+                const ekWords = new Set(ek.split(' ').filter(w => w.length > 2));
+                if (keyWords.size < 4 || ekWords.size < 4) return false;
+                let common = 0;
+                for (const w of keyWords) if (ekWords.has(w)) common++;
+                const overlap = common / Math.min(keyWords.size, ekWords.size);
+                return overlap >= 0.75;
             });
         }
 
@@ -2501,6 +2536,8 @@ ${buildRandomPDFContext()}`;
             currentSetLog = [];
             answeredMap = {};
             secondsElapsed = 0;
+            let doc = activeDoc();
+            if (doc) { doc.quizProgress = null; persistLibrary(); }
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 secondsElapsed++;
@@ -2644,9 +2681,25 @@ ${buildRandomPDFContext()}`;
             el.innerText = `Attempted (life​time): ${attempted} • Remaining: ${remaining}`;
         }
 
+        // Persists exact mid-quiz position (question index, score, answers so far) so closing
+        // the app/tab and reopening resumes precisely where the user left off.
+        function persistQuizProgress() {
+            if (quizMode !== 'normal') return;
+            const doc = activeDoc();
+            if (!doc) return;
+            const bankIndices = currentQuizSet.map(q => masterQuestionBank.indexOf(q));
+            doc.quizProgress = {
+                bankIndices, index: currentQuestionIndex, score, wrongCount,
+                answeredMap, secondsElapsed, savedAt: Date.now()
+            };
+            doc.used = Array.from(usedQuestionIndices);
+            persistLibrary();
+        }
+
         function loadQuestion() {
             renderBgPauseButton();
             updateQuizPoolStatus();
+            persistQuizProgress();
             const qData = currentQuizSet[currentQuestionIndex];
 
             const hintBox = document.getElementById('hintBox');
@@ -2832,6 +2885,7 @@ ${buildRandomPDFContext()}`;
 
         function showResults() {
             clearInterval(timerInterval);
+            { const doc = activeDoc(); if (doc) { doc.quizProgress = null; persistLibrary(); } }
             document.getElementById('quizSection').classList.add('hidden');
             document.getElementById('resultSection').classList.remove('hidden');
             const fbNote = document.getElementById('feedbackNote');

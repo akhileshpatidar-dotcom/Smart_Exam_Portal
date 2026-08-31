@@ -439,6 +439,7 @@
                     <div class="w-32 md:w-48 bg-slate-700 h-2.5 rounded-full overflow-hidden">
                         <div id="progressBar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
                     </div>
+                    <span id="quizPoolStatus" class="hidden text-[11px] text-slate-400 border border-slate-700 px-2 py-1 rounded whitespace-nowrap"></span>
                 </div>
                 <div class="flex items-center gap-3 text-sm font-medium flex-wrap">
                     <div id="perQTimer" class="hidden font-mono text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">30s</div>
@@ -2298,6 +2299,7 @@ ${buildRandomPDFContext(8000)}`;
                     }
                 });
                 syncStartButton();
+                updateQuizPoolStatus();
                 const pool = document.getElementById('remainingPoolInfo');
                 if (pool) pool.innerText = pdfExhausted
                     ? `कुल Question Bank: ${masterQuestionBank.length} — अगले set के लिए ready: ${unaskedCount()} (इस PDF का पूरा content पढ़ा जा चुका है)`
@@ -2575,6 +2577,7 @@ ${buildRandomPDFContext()}`;
             beep(false);
             currentSetLog.push({ q: qData, selectedIndex: -1, isCorrect: false, skipped: true });
             answeredMap[currentQuestionIndex] = { selectedIndex: -1, isCorrect: false, skipped: true };
+            updateQuizPoolStatus();
             attemptedQuestionsLog.push({
                 attemptNum: attemptedQuestionsLog.length + 1,
                 question: qData.question, options: qData.options,
@@ -2602,8 +2605,18 @@ ${buildRandomPDFContext()}`;
             btn.innerHTML = marked ? '<i class="fa-solid fa-star text-amber-400"></i>' : '<i class="fa-regular fa-star"></i>';
         }
 
+        function updateQuizPoolStatus() {
+            const el = document.getElementById('quizPoolStatus');
+            if (!el) return;
+            const attempted = usedQuestionIndices.size;
+            const remaining = Math.max(0, masterQuestionBank.length - attempted);
+            el.classList.remove('hidden');
+            el.innerText = `Attempted: ${attempted} • Remaining: ${remaining}`;
+        }
+
         function loadQuestion() {
             renderBgPauseButton();
+            updateQuizPoolStatus();
             const qData = currentQuizSet[currentQuestionIndex];
             document.getElementById('currentQNum').innerText = `Q ${currentQuestionIndex + 1}/${currentQuizSet.length}`;
             document.getElementById('scoreText').innerText = settings.negMark
@@ -2689,6 +2702,7 @@ ${buildRandomPDFContext()}`;
 
             currentSetLog.push({ q: qData, selectedIndex: selectedIndex, isCorrect: isCorrect, skipped: false });
             answeredMap[currentQuestionIndex] = { selectedIndex: selectedIndex, isCorrect: isCorrect, skipped: false };
+            updateQuizPoolStatus();
 
             if (!isCorrect && !mistakeBank.some(m => m.question === qData.question)) {
                 mistakeBank.push(qData);

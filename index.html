@@ -2794,7 +2794,7 @@ ${buildRandomPDFContext()}`;
             const marksLine = document.getElementById('marksLine');
             marksLine.classList.remove('hidden');
             marksLine.innerHTML = settings.negMark
-                ? `Score: <span class="text-lg">${marks.toFixed(2)}</span> / ${total} &nbsp;•&nbsp; Correct ${score} × 1 = ${score}, Wrong ${wrong} × (-${negLabel()}) = -${(wrong * settings.negMark).toFixed(2)}, Skipped ${skipped} (0)`
+                ? `Score (Negative Marking के साथ): <span class="text-lg">${marks.toFixed(2)}</span> / ${total} &nbsp;•&nbsp; Correct ${score} × 1 = ${score}, Wrong ${wrong} × (-${negLabel()}) = -${(wrong * settings.negMark).toFixed(2)}, Skipped ${skipped} (0)<br>Score (Negative Marking के बिना): <span class="text-lg">${score}</span> / ${total}`
                 : `Score: <span class="text-lg">${score}</span> / ${total} (negative marking Off है)`;
 
             // review of this set

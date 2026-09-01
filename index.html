@@ -2174,20 +2174,29 @@ ${buildRandomPDFContext(8000)}`;
             return (t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
         }
 
-        function isDuplicateQuestion(q) {
+        function normalizeOptions(opts) {
+            return (opts || []).map(o => normalizeQuestion(String(o).replace(/^[A-D]\)\s*/, ''))).sort().join('|');
+        }
+
+        function isDuplicateQuestion(q, opts) {
             const key = normalizeQuestion(q);
             if (!key) return true;
             const keyWords = new Set(key.split(' ').filter(w => w.length > 2));
+            const optKey = opts ? normalizeOptions(opts) : '';
             return masterQuestionBank.some(existing => {
                 const ek = normalizeQuestion(existing.question);
                 if (ek === key || (ek.length > 25 && key.length > 25 && (ek.includes(key) || key.includes(ek)))) return true;
                 // fuzzy check: AI often rephrases the same question slightly — catch that via word overlap
                 const ekWords = new Set(ek.split(' ').filter(w => w.length > 2));
-                if (keyWords.size < 4 || ekWords.size < 4) return false;
-                let common = 0;
-                for (const w of keyWords) if (ekWords.has(w)) common++;
-                const overlap = common / Math.min(keyWords.size, ekWords.size);
-                return overlap >= 0.75;
+                if (keyWords.size >= 4 && ekWords.size >= 4) {
+                    let common = 0;
+                    for (const w of keyWords) if (ekWords.has(w)) common++;
+                    const overlap = common / Math.min(keyWords.size, ekWords.size);
+                    if (overlap >= 0.7) return true;
+                    // same option set + moderately similar question wording = same question, reworded
+                    if (overlap >= 0.45 && optKey && optKey === normalizeOptions(existing.options)) return true;
+                }
+                return false;
             });
         }
 
@@ -2374,11 +2383,28 @@ ${buildRandomPDFContext(8000)}`;
                 return 0;
             }
 
-            // Full list of already-asked questions so the AI can avoid every one of them
-            const existingList = masterQuestionBank
-                .map((q, i) => `${i + 1}. ${q.question}`)
-                .join("\n")
-                .substring(0, 30000);
+            // Full list of already-asked questions so the AI can avoid every one of them.
+            // Kept as full whole questions (never mid-question truncated) — for very large banks
+            // this samples recent + random older ones rather than blindly cutting by character count,
+            // so the AI still sees a representative anti-repeat list instead of missing later entries.
+            function buildExistingList() {
+                const all = masterQuestionBank.map((q, i) => `${i + 1}. ${q.question}`);
+                const CHAR_BUDGET = 45000;
+                let joined = all.join("\n");
+                if (joined.length <= CHAR_BUDGET) return joined;
+                const recentCount = Math.min(all.length, 120);
+                const recent = all.slice(-recentCount);
+                const older = all.slice(0, all.length - recentCount);
+                const sampled = [];
+                const sampleBudget = CHAR_BUDGET - recent.join("\n").length;
+                let used = 0;
+                for (let i = older.length - 1; i >= 0 && used < sampleBudget; i -= Math.max(1, Math.floor(older.length / 150))) {
+                    sampled.push(older[i]);
+                    used += older[i].length + 1;
+                }
+                return sampled.reverse().concat(recent).join("\n");
+            }
+            const existingList = buildExistingList();
 
             const MAX_ATTEMPTS = 4;
             let addedTotal = 0;
@@ -2468,8 +2494,16 @@ ${buildRandomPDFContext()}`;
                     const freshOnes = [];
                     parsedQuestions.forEach(q => {
                         if (!isValidQuestion(q)) return;
-                        if (isDuplicateQuestion(q.question)) return;
-                        if (freshOnes.some(f => normalizeQuestion(f.question) === normalizeQuestion(q.question))) return;
+                        if (isDuplicateQuestion(q.question, q.options)) return;
+                        if (freshOnes.some(f => {
+                            const fk = normalizeQuestion(f.question), qk = normalizeQuestion(q.question);
+                            if (fk === qk) return true;
+                            const fw = new Set(fk.split(' ').filter(w => w.length > 2));
+                            const qw = new Set(qk.split(' ').filter(w => w.length > 2));
+                            if (fw.size < 4 || qw.size < 4) return false;
+                            let common = 0; for (const w of qw) if (fw.has(w)) common++;
+                            return (common / Math.min(fw.size, qw.size)) >= 0.7;
+                        })) return;
                         freshOnes.push(shuffleQuestionOptions(q));
                     });
 

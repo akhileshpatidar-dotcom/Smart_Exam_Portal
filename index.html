@@ -143,6 +143,9 @@
         html body.light .bg-red-500\/10 { background-color: #fdecec !important; }
         body.light .border-red-500\/30 { border-color: #d94141 !important; }
         body.light #reviewInline { background-color: #f8f9fb !important; border-color: #e2e5eb !important; color: #1a2233 !important; }
+        body.light .bg-sky-500\/10 { background-color: #e8f2fd !important; }
+        body.light .border-sky-500\/30 { border-color: #4a9de8 !important; }
+        body.light .text-sky-200, body.light .text-sky-400 { color: #1a5fa8 !important; }
 
         /* answer feedback pulse */
         @keyframes answerPulse { 0% { transform: scale(1); } 45% { transform: scale(1.02); } 100% { transform: scale(1); } }
@@ -468,10 +471,10 @@
                     <!-- Options injected dynamically -->
                 </div>
                 <div id="hintBox" class="hidden">
-                    <button onclick="toggleHint()" class="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1.5">
+                    <button onclick="toggleHint()" class="text-xs font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1.5">
                         <span id="hintToggleLabel">Hint</span> <i id="hintChevron" class="fa-solid fa-chevron-down text-[10px]"></i>
                     </button>
-                    <div id="hintText" class="hidden mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200"></div>
+                    <div id="hintText" class="hidden mt-2 p-3 rounded-lg bg-sky-500/10 border border-sky-500/30 text-xs text-sky-200"></div>
                 </div>
                 <div id="reviewInline" class="hidden p-3 rounded-lg bg-slate-900/70 border border-slate-700 text-xs text-slate-300 space-y-1"></div>
             </div>

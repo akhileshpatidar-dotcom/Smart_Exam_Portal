@@ -433,7 +433,7 @@
         </section>
 
         <!-- SECTION 2: QUIZ INTERFACE -->
-        <section id="quizSection" class="hidden space-y-6">
+        <section id="quizSection" class="hidden space-y-6 pb-24">
             
             <!-- Progress Bar & Info -->
             <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-wrap items-center justify-between gap-4">
@@ -2839,7 +2839,13 @@ ${buildRandomPDFContext()}`;
             setTimeout(() => card.classList.remove('answer-pulse'), 300);
 
             openEvalModal(isCorrect, qData, selectedIndex);
-            document.getElementById('nextQuestionBtn').classList.remove('hidden');
+            const nextBtn = document.getElementById('nextQuestionBtn');
+            nextBtn.classList.remove('hidden');
+            setTimeout(() => {
+                const rect = nextBtn.getBoundingClientRect();
+                const target = window.scrollY + rect.bottom - window.innerHeight + 24;
+                if (target > window.scrollY) window.scrollTo({ top: target, behavior: 'smooth' });
+            }, 50);
         }
 
         function openEvalModal(isCorrect, qData) {

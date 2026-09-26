@@ -1,6 +1,7 @@
 // Smart Exam Portal — offline shell
-// HTML is network-first so a new upload is picked up immediately; assets are cache-first.
-const CACHE = 'exam-portal-v4';
+// Only same-origin files are handled here. CDN files (Tailwind, fonts, PDF.js, Firebase,
+// Gemini API) go straight to the browser so a failed/blocked fetch can never break the page.
+const CACHE = 'exam-portal-v5';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -18,11 +19,13 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
+  // cross-origin (CDN / API) — do not intercept at all
+  if (new URL(req.url).origin !== self.location.origin) return;
+
   const isPage = req.mode === 'navigate' ||
                  (req.headers.get('accept') || '').includes('text/html');
 
   if (isPage) {
-    // always try the network first, fall back to cache when offline
     e.respondWith(
       fetch(req).then(res => {
         const copy = res.clone();
@@ -35,9 +38,11 @@ self.addEventListener('fetch', e => {
 
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
-      const copy = res.clone();
-      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+      }
       return res;
-    }))
+    }).catch(() => new Response('', { status: 504 })))
   );
 });

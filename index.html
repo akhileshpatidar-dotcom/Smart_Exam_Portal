@@ -13,7 +13,9 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <title>Smart exam Portal (MCQ/Quiz only) | PDF Analysis & Assessment System</title>
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Local copy first (works even when the network can't reach cdn.tailwindcss.com); CDN only as backup -->
+    <script src="tailwind.js"></script>
+    <script>if (!window.tailwind) document.write('<script src="https://cdn.tailwindcss.com"><\/script>');</script>
     <!-- PDF.js for client-side PDF parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- html2pdf.js for generating exact PDF reports with Devanagari Hindi font support -->
